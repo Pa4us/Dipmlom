@@ -1,0 +1,220 @@
+@model InspectorDashboardViewModel
+@{ ViewData["Title"] = "Моя страница"; }
+
+@functions {
+    static string ScoreClass(int s) => s >= 8 ? "score-high" : s >= 5 ? "score-medium" : "score-low";
+    static string StatusBadge(string s) => s switch {
+        "InProgress" => "badge-inprogress", "Completed" => "badge-completed",
+        "Cancelled"  => "badge-cancelled",  _ => "badge-pending" };
+    static string StatusText(string s) => s switch {
+        "Pending"    => "Ожидает",    "InProgress" => "В работе",
+        "Completed"  => "Выполнено", "Cancelled"  => "Отменено", _ => s };
+}
+
+<div class="row g-4">
+
+    <!-- Информация о проживании -->
+    <div class="col-lg-5">
+        @if (Model.Residence != null)
+        {
+            <div class="card stat-card mb-4">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-house-door me-2 text-primary"></i>Моё проживание</h6>
+                    <dl class="row small mb-0">
+                        <dt class="col-6 text-muted">Блок</dt>
+                        <dd class="col-6 fw-semibold">@Model.Residence.BlockNumber</dd>
+                        <dt class="col-6 text-muted">Комната</dt>
+                        <dd class="col-6">@(Model.Residence.RoomNumber ?? "—")</dd>
+                        <dt class="col-6 text-muted">Заселён с</dt>
+                        <dd class="col-6">@Model.Residence.MoveInDate.ToString("dd.MM.yyyy")</dd>
+                    </dl>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card stat-card mb-4">
+                <div class="card-body text-center text-muted py-3">
+                    <i class="bi bi-house-x" style="font-size:2rem"></i>
+                    <p class="mt-2 mb-0">Информация о проживании не найдена</p>
+                </div>
+            </div>
+        }
+
+        <!-- Баллы -->
+        @if (Model.Rating != null)
+        {
+            <div class="card stat-card mb-4 text-center">
+                <div class="card-body py-3">
+                    <i class="bi bi-star-fill text-warning" style="font-size:1.8rem"></i>
+                    <div class="fs-3 fw-bold mt-1 @(Model.Rating.TotalPoints >= 0 ? "text-success" : "text-danger")">
+                        @(Model.Rating.TotalPoints >= 0 ? "+" : "")@Model.Rating.TotalPoints
+                    </div>
+                    <div class="small text-muted">суммарных баллов</div>
+                    <a asp-action="Points" class="btn btn-sm btn-outline-secondary mt-2">
+                        <i class="bi bi-clock-history me-1"></i>История
+                    </a>
+                </div>
+            </div>
+        }
+
+        <!-- Последняя оценка блока -->
+        @if (Model.LatestBlockInspection != null)
+        {
+            <div class="card stat-card mb-4">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2">
+                        <i class="bi bi-clipboard-check me-2 text-primary"></i>Оценка блока
+                    </h6>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="score-badge @ScoreClass(Model.LatestBlockInspection.Score)" style="font-size:1.3rem;padding:.4rem .9rem">
+                            @Model.LatestBlockInspection.Score / 10
+                        </span>
+                        <div class="small text-muted">
+                            @Model.LatestBlockInspection.InspectionDate.ToString("dd.MM.yyyy")<br />
+                            @Model.LatestBlockInspection.ZoneName
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Правая колонка -->
+    <div class="col-lg-7">
+
+        <!-- Блок проверок (условно разблокирован) -->
+        <div class="card stat-card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="bi bi-clipboard-check me-2 text-primary"></i>Провести проверку
+                    </h6>
+                    @if (Model.IsInspectionDay)
+                    {
+                        <span class="badge bg-success"><i class="bi bi-unlock me-1"></i>Сегодня разрешено</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Не разрешено сегодня</span>
+                    }
+                </div>
+
+                @if (Model.IsInspectionDay)
+                {
+                    <form method="post" asp-action="CreateInspection">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label form-label-sm">Блок <span class="text-danger">*</span></label>
+                                <select name="BlockId" class="form-select form-select-sm ts-select ts-sm" required>
+                                    <option value="">— Выберите блок —</option>
+                                    @foreach (var b in Model.Blocks)
+                                    {
+                                        <option value="@b.Id">Блок @b.BlockNumber — эт. @b.Floor</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label form-label-sm">Зона <span class="text-danger">*</span></label>
+                                <select name="ZoneId" class="form-select form-select-sm" required>
+                                    <option value="">— Зона —</option>
+                                    @foreach (var z in InspectorDashboardViewModel.Zones)
+                                    {
+                                        <option value="@z.Key">@z.Value</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-8">
+                                <label class="form-label form-label-sm">Оценка (0–10)</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="range" name="Score" id="scoreRange"
+                                           class="form-range flex-grow-1" min="0" max="10" value="7"
+                                           oninput="document.getElementById('scoreVal').textContent = this.value" />
+                                    <span id="scoreVal" class="fw-bold text-primary" style="min-width:28px">7</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label form-label-sm">Дата</label>
+                                <input type="date" name="InspectionDate" class="form-control form-control-sm"
+                                       value="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <textarea name="Comment" class="form-control form-control-sm" rows="2"
+                                      placeholder="Наблюдения, замечания..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-save me-1"></i>Сохранить проверку
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-calendar-x" style="font-size:2rem"></i>
+                        <p class="mt-2 mb-0 small">
+                            Форма проверки доступна только в дни, установленные воспитателем.
+                            Обратитесь к воспитателю за расписанием.
+                        </p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Мои последние проверки -->
+        @if (Model.MyInspections.Any())
+        {
+            <div class="table-card mb-4">
+                <div class="p-3 border-bottom fw-semibold">
+                    <i class="bi bi-list-check me-2 text-primary"></i>Мои последние проверки
+                    <span class="badge bg-secondary ms-2">@Model.MyInspections.Count</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 small">
+                        <thead>
+                            <tr><th>Дата</th><th>Блок</th><th>Зона</th><th>Оценка</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var i in Model.MyInspections.Take(5))
+                            {
+                                <tr>
+                                    <td>@i.InspectionDate.ToString("dd.MM.yyyy")</td>
+                                    <td><span class="badge bg-secondary">@i.BlockNumber</span></td>
+                                    <td>@i.ZoneName</td>
+                                    <td><span class="score-badge @ScoreClass(i.Score)">@i.Score / 10</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- Мои последние заявки -->
+        @if (Model.MyRecentRequests.Any())
+        {
+            <div class="table-card">
+                <div class="p-3 border-bottom fw-semibold">
+                    <i class="bi bi-tools me-2 text-primary"></i>Мои заявки на ремонт
+                </div>
+                @foreach (var r in Model.MyRecentRequests)
+                {
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold small">@r.Title</div>
+                            <div class="text-muted" style="font-size:.78rem">@r.CreatedAt.ToString("dd.MM.yyyy")</div>
+                        </div>
+                        <span class="badge @StatusBadge(r.Status)">@StatusText(r.Status)</span>
+                    </div>
+                }
+                <div class="p-2">
+                    <a asp-action="RepairRequests" class="btn btn-sm btn-outline-secondary w-100">
+                        Все заявки <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>

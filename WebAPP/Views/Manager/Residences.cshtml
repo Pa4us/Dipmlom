@@ -1,0 +1,136 @@
+@model ManagerResidencesViewModel
+@{ ViewData["Title"] = "Проживание"; }
+
+<div class="row g-4">
+
+    <!-- Список проживающих -->
+    <div class="col-lg-8">
+        <div class="table-card">
+            <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-house-fill me-2 text-success"></i>Текущие жильцы
+                    <span class="badge bg-secondary ms-1">@Model.CurrentResidences.Count</span>
+                </span>
+                <a asp-action="ExportResidences" class="btn btn-sm btn-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Экспорт в Excel
+                </a>
+            </div>
+
+            @if (!Model.CurrentResidences.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-house" style="font-size:3rem"></i>
+                    <p class="mt-2">Нет текущих жильцов</p>
+                </div>
+            }
+
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Студент</th>
+                        <th>Блок</th>
+                        <th>Комната</th>
+                        <th>Заселён</th>
+                        <th>Дней</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.CurrentResidences)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@r.UserFullName</div>
+                                <div class="small text-muted"><code>@r.Username</code></div>
+                            </td>
+                            <td>@r.BlockNumber</td>
+                            <td>@r.RoomNumber</td>
+                            <td class="small text-muted">@r.MoveInDate.ToString("dd.MM.yyyy")</td>
+                            <td class="small">@r.DurationDays</td>
+                            <td>
+                                <form method="post" asp-action="CheckOut"
+                                      onsubmit="return confirm('Выселить «@r.UserFullName»?')">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-box-arrow-right me-1"></i>Выселить
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Форма заселения -->
+    <div class="col-lg-4">
+        <div class="form-card sticky-top" style="top:70px">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-house-add-fill text-success me-2"></i>Заселить студента
+            </h6>
+
+            @if (!Model.Students.Any())
+            {
+                <div class="alert alert-info py-2 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Все студенты уже заселены
+                </div>
+            }
+            else
+            {
+                <form method="post" asp-action="CheckIn">
+                    <div class="mb-3">
+                        <label class="form-label">Студент <span class="text-danger">*</span></label>
+                        <select name="UserId" class="form-select ts-select" required>
+                            <option value="">— Выбрать студента —</option>
+                            @foreach (var s in Model.Students)
+                            {
+                                <option value="@s.Id">@s.FullName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Комната <span class="text-danger">*</span></label>
+                        <select name="RoomId" class="form-select ts-select" id="roomSelect" required>
+                            <option value="">— Выбрать блок и комнату —</option>
+                            @foreach (var b in Model.Blocks)
+                            {
+                                var blockRooms = Model.Rooms.Where(r => r.BlockId == b.Id).ToList();
+                                if (blockRooms.Any())
+                                {
+                                    <optgroup label="Блок @b.BlockNumber">
+                                        @foreach (var room in blockRooms)
+                                        {
+                                            var free = room.FreePlaces;
+                                            if (free > 0)
+                                            {
+                                                <option value="@room.Id">
+                                                    Комн. @room.RoomNumber — свободно @free из @room.Capacity мест
+                                                </option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@room.Id" disabled>
+                                                    Комн. @room.RoomNumber — занята
+                                                </option>
+                                            }
+                                        }
+                                    </optgroup>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Дата заселения <span class="text-danger">*</span></label>
+                        <input type="date" name="MoveInDate" class="form-control"
+                               value="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-house-check me-1"></i>Заселить
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

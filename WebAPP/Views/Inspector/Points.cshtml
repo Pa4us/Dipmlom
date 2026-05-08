@@ -1,0 +1,89 @@
+@model InspectorPointsViewModel
+@{ ViewData["Title"] = "Мои баллы"; }
+
+<div class="row g-4">
+
+    <!-- Итоговая карточка -->
+    <div class="col-lg-4">
+        <div class="card stat-card text-center p-4">
+            <i class="bi bi-star-fill text-warning" style="font-size:3rem"></i>
+            @if (Model.Rating != null)
+            {
+                <div class="display-3 fw-bold mt-2 @(Model.Rating.TotalPoints >= 0 ? "text-success" : "text-danger")">
+                    @(Model.Rating.TotalPoints >= 0 ? "+" : "")@Model.Rating.TotalPoints
+                </div>
+                <div class="text-muted mb-3">суммарных баллов</div>
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="bg-success bg-opacity-10 rounded p-2">
+                            <div class="fw-bold text-success">+@Model.Rating.EventPoints</div>
+                            <div class="small text-muted">начислено</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="bg-danger bg-opacity-10 rounded p-2">
+                            <div class="fw-bold text-danger">-@Model.Rating.PenaltyPoints</div>
+                            <div class="small text-muted">взыскано</div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mt-3">Нет данных о баллах</p>
+            }
+        </div>
+    </div>
+
+    <!-- История операций -->
+    <div class="col-lg-8">
+        <div class="table-card">
+            <div class="p-3 border-bottom fw-semibold">
+                <i class="bi bi-clock-history me-2 text-primary"></i>История начислений
+            </div>
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тип</th>
+                        <th>Баллы</th>
+                        <th>Причина</th>
+                        <th>Источник</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Points)
+                    {
+                        <tr>
+                            <td class="text-muted small">@p.CreatedAt.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                @if (p.PointsType == "Award")
+                                {
+                                    <span class="badge" style="background:#d1fae5;color:#065f46">
+                                        <i class="bi bi-plus-circle me-1"></i>Начисление
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:#fee2e2;color:#991b1b">
+                                        <i class="bi bi-dash-circle me-1"></i>Взыскание
+                                    </span>
+                                }
+                            </td>
+                            <td class="fw-semibold @(p.PointsType == "Award" ? "text-success" : "text-danger")">
+                                @(p.PointsType == "Award" ? "+" : "-")@p.Points
+                            </td>
+                            <td class="small">@p.Reason</td>
+                            <td class="small text-muted">@p.SourceType</td>
+                        </tr>
+                    }
+                    @if (!Model.Points.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">Операций пока нет</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

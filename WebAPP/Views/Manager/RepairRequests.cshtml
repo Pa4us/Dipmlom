@@ -1,0 +1,114 @@
+@model ManagerRepairRequestsViewModel
+@{ ViewData["Title"] = "Заявки на ремонт"; }
+
+@{
+    var statuses = new[]
+    {
+        (null as string,  "Все"),
+        ("Pending",       "Ожидают"),
+        ("InProgress",    "В работе"),
+        ("Completed",     "Выполнены"),
+        ("Cancelled",     "Отменены"),
+    };
+}
+
+<!-- Фильтр по статусу -->
+<div class="d-flex flex-wrap gap-2 mb-4">
+    @foreach (var (val, label) in statuses)
+    {
+        var isActive = Model.StatusFilter == val;
+        <a asp-action="RepairRequests" asp-route-status="@val"
+           class="btn btn-sm @(isActive ? "btn-primary" : "btn-outline-secondary")">
+            @label
+            @if (isActive && Model.Requests.Any())
+            {
+                <span class="badge bg-white text-primary ms-1">@Model.Requests.Count</span>
+            }
+        </a>
+    }
+</div>
+
+<div class="table-card">
+    <div class="p-3 border-bottom fw-semibold">
+        <i class="bi bi-tools me-2 text-secondary"></i>Заявки
+        <span class="badge bg-secondary ms-1">@Model.Requests.Count</span>
+    </div>
+
+    @if (!Model.Requests.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-check2-circle" style="font-size:3rem"></i>
+            <p class="mt-2">Заявок нет</p>
+        </div>
+    }
+    else
+    {
+        <table class="table mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Тема</th>
+                    <th>Блок / Комната</th>
+                    <th>Заявитель</th>
+                    <th>Исполнитель</th>
+                    <th>Приоритет</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Requests)
+                {
+                    var badgeClass = r.Status switch {
+                        "InProgress" => "badge-inprogress",
+                        "Completed"  => "badge-completed",
+                        "Cancelled"  => "badge-cancelled",
+                        _            => "badge-pending"
+                    };
+                    var statusText = r.Status switch {
+                        "Pending"    => "Ожидает",
+                        "InProgress" => "В работе",
+                        "Completed"  => "Выполнено",
+                        "Cancelled"  => "Отменено",
+                        _            => r.Status
+                    };
+                    var priorityIcon = r.Priority switch {
+                        "High"   => "🔴",
+                        "Normal" => "🟡",
+                        _        => "⚪"
+                    };
+
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@r.Title</div>
+                            <div class="small text-muted">@r.Description</div>
+                        </td>
+                        <td class="small text-muted">
+                            @r.BlockNumber
+                            @if (!string.IsNullOrEmpty(r.RoomNumber))
+                            {
+                                <span>/ @r.RoomNumber</span>
+                            }
+                        </td>
+                        <td class="small">@r.RequestedByName</td>
+                        <td class="small text-muted">@(r.AssignedToName ?? "—")</td>
+                        <td class="text-center">@priorityIcon</td>
+                        <td><span class="badge @badgeClass">@statusText</span></td>
+                        <td class="small text-muted">@r.CreatedAt.ToString("dd.MM.yyyy")</td>
+                        <td>
+                            <form method="post" asp-action="DeleteRepairRequest"
+                                  onsubmit="return confirm('Удалить заявку «@r.Title»? Это действие нельзя отменить.')">
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <input type="hidden" name="status" value="@Model.StatusFilter" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        title="Удалить заявку">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

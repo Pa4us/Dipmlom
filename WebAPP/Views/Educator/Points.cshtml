@@ -1,0 +1,175 @@
+@model PointsViewModel
+@{ ViewData["Title"] = "Баллы студентов"; }
+
+<div class="row g-4">
+
+    <!-- Рейтинг -->
+    <div class="col-lg-7">
+        <div class="table-card mb-4">
+            <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-trophy-fill text-warning me-2"></i>Рейтинг студентов</span>
+                <a asp-action="ExportStudentRatings" class="btn btn-sm btn-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </a>
+            </div>
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Студент</th>
+                        <th>Всего баллов</th>
+                        <th>За мероприятия</th>
+                        <th>Взысканий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{int rank = 1;}
+                    @foreach (var r in Model.Ratings)
+                    {
+                        <tr>
+                            <td>
+                                @if (rank == 1) { <i class="bi bi-trophy-fill text-warning"></i> }
+                                else if (rank == 2) { <span class="text-secondary fw-bold">2</span> }
+                                else if (rank == 3) { <span class="text-danger fw-bold">3</span> }
+                                else { <span class="text-muted">@rank</span> }
+                            </td>
+                            <td>@r.FullName</td>
+                            <td>
+                                <span class="fw-bold @(r.TotalPoints >= 0 ? "text-success" : "text-danger")">
+                                    @(r.TotalPoints >= 0 ? "+" : "")@r.TotalPoints
+                                </span>
+                            </td>
+                            <td class="text-muted">+@r.EventPoints</td>
+                            <td class="text-danger">-@r.PenaltyPoints</td>
+                        </tr>
+                        rank++;
+                    }
+                    @if (!Model.Ratings.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-3">Нет данных</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Прошедшие мероприятия -->
+        @if (Model.PastEvents.Any())
+        {
+            <div class="table-card">
+                <div class="p-3 border-bottom fw-semibold">
+                    <i class="bi bi-calendar-check me-2 text-info"></i>Начислить баллы за мероприятия
+                </div>
+                @foreach (var ev in Model.PastEvents)
+                {
+                    var evParticipants = Model.EventParticipants.GetValueOrDefault(ev.Id) ?? new();
+                    <div class="p-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div class="fw-semibold">@ev.Title</div>
+                                <div class="small text-muted">
+                                    <i class="bi bi-calendar3 me-1"></i>@ev.EventDate.ToString("dd.MM.yyyy")
+                                    <span class="ms-2"><i class="bi bi-people me-1"></i>@evParticipants.Count уч.</span>
+                                    <span class="ms-2 text-warning"><i class="bi bi-star me-1"></i>@ev.PointsAwarded б.</span>
+                                </div>
+                                @if (evParticipants.Any())
+                                {
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        @foreach (var p in evParticipants)
+                                        {
+                                            <span class="badge bg-light text-dark border" style="font-size:.75rem">@p.FullName</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            @if (evParticipants.Any())
+                            {
+                                <form method="post" asp-action="AwardAllEventParticipants" class="d-flex gap-2 align-items-start ms-3">
+                                    <input type="hidden" name="eventId" value="@ev.Id" />
+                                    <input type="hidden" name="reason" value="Участие в мероприятии: @ev.Title" />
+                                    <div class="text-center">
+                                        <input type="number" name="points" value="@ev.PointsAwarded" min="1" max="100"
+                                               class="form-control form-control-sm mb-1" style="width:70px" />
+                                        <button type="submit" class="btn btn-sm btn-success text-nowrap"
+                                                onclick="return confirm('Начислить @ev.PointsAwarded баллов всем @evParticipants.Count участникам?')">
+                                            <i class="bi bi-gift me-1"></i>Всем
+                                        </button>
+                                    </div>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary ms-3">Нет участников</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Формы начисления/взыскания -->
+    <div class="col-lg-5">
+
+        <!-- Начислить баллы -->
+        <div class="form-card mb-4">
+            <h6 class="fw-bold text-success mb-3">
+                <i class="bi bi-plus-circle-fill me-2"></i>Начислить баллы
+            </h6>
+            <form method="post" asp-action="AwardPoints">
+                <div class="mb-3">
+                    <label class="form-label">Студент</label>
+                    <select name="UserId" class="form-select ts-select" required>
+                        <option value="">— Выберите студента —</option>
+                        @foreach (var s in Model.Students)
+                        {
+                            <option value="@s.Id">@s.FullName</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Баллы</label>
+                    <input type="number" name="Points" class="form-control" min="1" max="100" placeholder="Количество" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Причина</label>
+                    <input type="text" name="Reason" class="form-control" placeholder="Напр: участие в субботнике" required />
+                </div>
+                <input type="hidden" name="SourceType" value="Manual" />
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Начислить
+                </button>
+            </form>
+        </div>
+
+        <!-- Взыскать баллы -->
+        <div class="form-card">
+            <h6 class="fw-bold text-danger mb-3">
+                <i class="bi bi-dash-circle-fill me-2"></i>Взыскать баллы
+            </h6>
+            <form method="post" asp-action="DeductPoints">
+                <div class="mb-3">
+                    <label class="form-label">Студент</label>
+                    <select name="UserId" class="form-select ts-select" required>
+                        <option value="">— Выберите студента —</option>
+                        @foreach (var s in Model.Students)
+                        {
+                            <option value="@s.Id">@s.FullName</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Баллы</label>
+                    <input type="number" name="Points" class="form-control" min="1" max="100" placeholder="Количество" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Причина</label>
+                    <input type="text" name="Reason" class="form-control" placeholder="Напр: неудовлетворительное состояние блока" required />
+                </div>
+                <input type="hidden" name="SourceType" value="Manual" />
+                <button type="submit" class="btn btn-danger w-100">
+                    <i class="bi bi-dash-circle me-1"></i>Взыскать
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

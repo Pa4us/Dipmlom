@@ -1,0 +1,164 @@
+@model ManagerRoomsViewModel
+@{ ViewData["Title"] = "Комнаты"; }
+
+<div class="row g-4">
+
+    <!-- Список комнат -->
+    <div class="col-lg-8">
+        <div class="table-card">
+            <div class="p-3 border-bottom fw-semibold">
+                <i class="bi bi-door-open me-2 text-primary"></i>Все комнаты
+                <span class="badge bg-secondary ms-1">@Model.Rooms.Count</span>
+            </div>
+
+            @if (!Model.Rooms.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-door-open" style="font-size:3rem"></i>
+                    <p class="mt-2">Комнат нет</p>
+                </div>
+            }
+
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Комната</th>
+                        <th>Блок</th>
+                        <th class="text-center">Вместимость</th>
+                        <th class="text-center">Занято</th>
+                        <th class="text-center">Свободно</th>
+                        <th class="text-center">Статус</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Rooms)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@r.RoomNumber</td>
+                            <td class="text-muted">@r.BlockNumber</td>
+                            <td class="text-center">@r.Capacity</td>
+                            <td class="text-center">@r.CurrentOccupancy</td>
+                            <td class="text-center">
+                                <span class="@(r.FreePlaces > 0 ? "text-success fw-semibold" : "text-danger")">
+                                    @r.FreePlaces
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                @if (r.IsActive)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Активна</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border">Закрыта</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal" data-bs-target="#editRoom-@r.Id">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-action="DeleteRoom" class="d-inline"
+                                      onsubmit="return confirm('Удалить комнату @r.RoomNumber?')">
+                                    <input type="hidden" name="id" value="@r.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- Модалка редактирования комнаты -->
+                        <div class="modal fade" id="editRoom-@r.Id" tabindex="-1">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Комната @r.RoomNumber</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="post" asp-action="EditRoom">
+                                        <div class="modal-body">
+                                            <input type="hidden" name="Id" value="@r.Id" />
+                                            <div class="mb-3">
+                                                <label class="form-label">Номер комнаты <span class="text-danger">*</span></label>
+                                                <input type="text" name="RoomNumber" class="form-control" value="@r.RoomNumber" required />
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Блок <span class="text-danger">*</span></label>
+                                                <select name="BlockId" class="form-select" required>
+                                                    @foreach (var b in Model.Blocks)
+                                                    {
+                                                        if (b.Id == r.BlockId)
+                                                        {
+                                                            <option value="@b.Id" selected>@b.BlockNumber</option>
+                                                        }
+                                                        else
+                                                        {
+                                                            <option value="@b.Id">@b.BlockNumber</option>
+                                                        }
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Вместимость <span class="text-danger">*</span></label>
+                                                <input type="number" name="Capacity" class="form-control" value="@r.Capacity" min="1" max="10" required />
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Занято (факт)</label>
+                                                <input type="number" name="CurrentOccupancy" class="form-control" value="@r.CurrentOccupancy" min="0" />
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" name="IsActive"
+                                                       value="true" id="roomActive-@r.Id" @(r.IsActive ? "checked" : "") />
+                                                <label class="form-check-label" for="roomActive-@r.Id">Комната активна</label>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                                            <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Форма создания комнаты -->
+    <div class="col-lg-4">
+        <div class="form-card sticky-top" style="top:70px">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-door-open-fill text-primary me-2"></i>Добавить комнату
+            </h6>
+            <form method="post" asp-action="CreateRoom">
+                <div class="mb-3">
+                    <label class="form-label">Номер комнаты <span class="text-danger">*</span></label>
+                    <input type="text" name="RoomNumber" class="form-control"
+                           placeholder="Например: 401" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Блок <span class="text-danger">*</span></label>
+                    <select name="BlockId" class="form-select ts-select" required>
+                        <option value="">— Выбрать блок —</option>
+                        @foreach (var b in Model.Blocks)
+                        {
+                            <option value="@b.Id">@b.BlockNumber (этаж @b.Floor)</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Вместимость <span class="text-danger">*</span></label>
+                    <input type="number" name="Capacity" class="form-control"
+                           value="2" min="1" max="10" required />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Создать комнату
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

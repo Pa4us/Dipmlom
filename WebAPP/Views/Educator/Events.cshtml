@@ -1,0 +1,205 @@
+@model EventsViewModel
+@{ ViewData["Title"] = "Мероприятия"; }
+
+<div class="row g-4">
+
+    <!-- Список мероприятий -->
+    <div class="col-lg-8">
+        @if (!Model.Events.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-calendar-x" style="font-size:3rem"></i>
+                <p class="mt-2">Мероприятий пока нет</p>
+            </div>
+        }
+
+        @foreach (var ev in Model.Events)
+        {
+            var isPast        = ev.EventDate < DateOnly.FromDateTime(DateTime.Today);
+            var participants  = Model.EventParticipants.GetValueOrDefault(ev.Id) ?? new();
+
+            <div class="card stat-card mb-3">
+                <div class="card-body">
+
+                    <!-- Заголовок -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="fw-bold mb-1">
+                                @if (isPast)
+                                {
+                                    <span class="badge bg-secondary me-1">Прошло</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary me-1">Предстоит</span>
+                                }
+                                @ev.Title
+                            </h6>
+                            @if (!string.IsNullOrEmpty(ev.Description))
+                            {
+                                <p class="text-muted small mb-2">@ev.Description</p>
+                            }
+                        </div>
+                        @if (!isPast)
+                        {
+                            <form method="post" asp-action="DeleteEvent"
+                                  onsubmit="return confirm('Удалить мероприятие «@ev.Title»?')">
+                                <input type="hidden" name="id" value="@ev.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        }
+                    </div>
+
+                    <!-- Мета-данные -->
+                    <div class="d-flex flex-wrap gap-3 small text-muted mb-3">
+                        <span><i class="bi bi-calendar3 me-1"></i>@ev.EventDate.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))</span>
+                        @if (!string.IsNullOrEmpty(ev.Location))
+                        {
+                            <span><i class="bi bi-geo-alt me-1"></i>@ev.Location</span>
+                        }
+                        <span><i class="bi bi-star me-1 text-warning"></i>@ev.PointsAwarded баллов</span>
+                        <span><i class="bi bi-people me-1"></i>@participants.Count участников</span>
+                    </div>
+
+                    <!-- Список участников с кнопкой удаления -->
+                    @if (participants.Any())
+                    {
+                        <div class="mb-3">
+                            <div class="small fw-semibold text-muted mb-1">
+                                <i class="bi bi-person-check me-1"></i>Участники:
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var p in participants)
+                                {
+                                    <div class="d-flex align-items-center badge bg-light text-dark border gap-1 pe-1">
+                                        <span>@p.FullName</span>
+                                        <form method="post" asp-action="UnregisterParticipant" class="d-inline"
+                                              onsubmit="return confirm('Удалить @p.FullName из участников?')">
+                                            <input type="hidden" name="eventId"   value="@ev.Id" />
+                                            <input type="hidden" name="studentId" value="@p.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-link p-0 text-danger"
+                                                    style="font-size:.75rem;line-height:1;vertical-align:middle"
+                                                    title="Удалить из участников">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="border-top pt-3">
+                        <!-- Добавить студента (одинаково для предстоящих и прошедших) -->
+                        <div class="d-flex gap-2 flex-wrap align-items-center mb-2">
+                            <form method="post" asp-action="RegisterParticipant"
+                                  class="d-flex gap-2 align-items-center flex-grow-1">
+                                <input type="hidden" name="eventId" value="@ev.Id" />
+                                <select name="studentId"
+                                        class="form-select form-select-sm ts-select ts-sm"
+                                        style="min-width:200px" required>
+                                    <option value="">— Добавить участника —</option>
+                                    @foreach (var s in Model.Students)
+                                    {
+                                        var alreadyIn = participants.Any(p => p.Id == s.Id);
+                                        if (alreadyIn)
+                                        {
+                                            <option value="@s.Id" disabled>@s.FullName ✓</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@s.Id">@s.FullName</option>
+                                        }
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">
+                                    <i class="bi bi-person-plus me-1"></i>Записать
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Начислить баллы — только для прошедших мероприятий -->
+                        @if (isPast && participants.Any())
+                        {
+                            <div class="d-flex gap-2 flex-wrap align-items-center">
+                                <form method="post" asp-action="AwardEventPoints"
+                                      class="d-flex gap-2 align-items-center flex-grow-1">
+                                    <input type="hidden" name="eventId" value="@ev.Id" />
+                                    <select name="studentId"
+                                            class="form-select form-select-sm ts-select ts-sm"
+                                            style="min-width:200px" required>
+                                        <option value="">— Начислить баллы студенту —</option>
+                                        @foreach (var p in participants)
+                                        {
+                                            <option value="@p.Id">@p.FullName</option>
+                                        }
+                                    </select>
+                                    <input type="number" name="points"
+                                           value="@ev.PointsAwarded"
+                                           class="form-control form-control-sm"
+                                           style="width:72px" min="1" />
+                                    <input type="hidden" name="reason"
+                                           value="Участие в мероприятии: @ev.Title" />
+                                    <button type="submit" class="btn btn-sm btn-success text-nowrap">
+                                        <i class="bi bi-plus-circle me-1"></i>Баллы
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                        else if (!isPast)
+                        {
+                            <div class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Начислить баллы можно после окончания мероприятия (@ev.EventDate.ToString("dd.MM.yyyy")).
+                            </div>
+                        }
+                    </div>
+
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Создать мероприятие -->
+    <div class="col-lg-4">
+        <div class="form-card sticky-top" style="top:70px">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-calendar-plus-fill text-primary me-2"></i>Создать мероприятие
+            </h6>
+            <form method="post" asp-action="CreateEvent">
+                <div class="mb-3">
+                    <label class="form-label">Название <span class="text-danger">*</span></label>
+                    <input type="text" name="Title" class="form-control"
+                           placeholder="Субботник, конкурс..." required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Описание</label>
+                    <textarea name="Description" class="form-control" rows="2"
+                              placeholder="Краткое описание"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Дата <span class="text-danger">*</span></label>
+                    <input type="date" name="EventDate" class="form-control"
+                           value="@DateOnly.FromDateTime(DateTime.Today.AddDays(7)).ToString("yyyy-MM-dd")"
+                           required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Место проведения</label>
+                    <input type="text" name="Location" class="form-control"
+                           placeholder="Актовый зал, двор..." />
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Баллов за участие</label>
+                    <input type="number" name="PointsAwarded" class="form-control"
+                           value="5" min="0" max="50" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Создать
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

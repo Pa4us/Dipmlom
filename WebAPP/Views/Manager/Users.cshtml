@@ -1,0 +1,213 @@
+@model ManagerUsersViewModel
+@{ ViewData["Title"] = "Управление аккаунтами"; }
+
+<div class="row g-4">
+
+    <!-- Список пользователей -->
+    <div class="col-xl-8">
+
+        <!-- Поиск -->
+        <form method="get" asp-action="Users" class="d-flex gap-2 mb-3">
+            <input type="text" name="search" value="@Model.Search"
+                   class="form-control" placeholder="Поиск по ФИО, логину или email..." />
+            <button type="submit" class="btn btn-outline-primary text-nowrap">
+                <i class="bi bi-search me-1"></i>Найти
+            </button>
+            @if (!string.IsNullOrWhiteSpace(Model.Search))
+            {
+                <a asp-action="Users" class="btn btn-outline-secondary text-nowrap">
+                    <i class="bi bi-x"></i>
+                </a>
+            }
+        </form>
+
+        <div class="table-card">
+            <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-people me-2 text-primary"></i>Пользователи
+                    <span class="badge bg-secondary ms-1">@Model.Users.Count</span>
+                </span>
+            </div>
+
+            @if (!Model.Users.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-person-x" style="font-size:2.5rem"></i>
+                    <p class="mt-2">Пользователи не найдены</p>
+                </div>
+            }
+
+            @foreach (var u in Model.Users)
+            {
+                <div class="border-bottom p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold">@u.FullName</div>
+                            <div class="small text-muted">
+                                <code class="me-2">@u.Username</code>
+                                <a href="mailto:@u.Email" class="text-muted">@u.Email</a>
+                                @if (!string.IsNullOrEmpty(u.PhoneNumber))
+                                {
+                                    <span class="ms-2">@u.PhoneNumber</span>
+                                }
+                            </div>
+                            <div class="mt-1">
+                                <span class="badge bg-light text-dark border me-1">@u.RoleName</span>
+                                @if (u.IsActive)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Активен</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Заблокирован</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <!-- Кнопка редактирования -->
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="modal" data-bs-target="#editModal-@u.Id">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <!-- Кнопка сброса пароля -->
+                            <button type="button" class="btn btn-sm btn-outline-warning"
+                                    data-bs-toggle="modal" data-bs-target="#resetModal-@u.Id"
+                                    title="Сбросить пароль">
+                                <i class="bi bi-key"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модалка редактирования -->
+                <div class="modal fade" id="editModal-@u.Id" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Редактировать: @u.FullName</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="post" asp-action="EditUser">
+                                <div class="modal-body">
+                                    <input type="hidden" name="Id" value="@u.Id" />
+                                    <div class="mb-3">
+                                        <label class="form-label">ФИО <span class="text-danger">*</span></label>
+                                        <input type="text" name="FullName" class="form-control" value="@u.FullName" required />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                                        <input type="email" name="Email" class="form-control" value="@u.Email" required />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Телефон</label>
+                                        <input type="text" name="PhoneNumber" class="form-control" value="@u.PhoneNumber" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Роль <span class="text-danger">*</span></label>
+                                        <select name="RoleId" class="form-select" required>
+                                            @foreach (var role in Model.Roles)
+                                            {
+                                                if (role.Id == u.RoleId)
+                                                {
+                                                    <option value="@role.Id" selected>@role.Name</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@role.Id">@role.Name</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="IsActive"
+                                               value="true" id="active-@u.Id" @(u.IsActive ? "checked" : "") />
+                                        <label class="form-check-label" for="active-@u.Id">Аккаунт активен</label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модалка сброса пароля -->
+                <div class="modal fade" id="resetModal-@u.Id" tabindex="-1">
+                    <div class="modal-dialog modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="bi bi-key me-2"></i>Сброс пароля</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="post" asp-action="ResetUserPassword">
+                                <div class="modal-body">
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <p class="small text-muted">Установить новый пароль для <strong>@u.FullName</strong></p>
+                                    <div class="mb-0">
+                                        <label class="form-label">Новый пароль</label>
+                                        <input type="text" name="newPassword" class="form-control"
+                                               placeholder="Минимум 6 символов" required minlength="6" />
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                                    <button type="submit" class="btn btn-warning btn-sm">Сбросить</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Форма создания пользователя -->
+    <div class="col-xl-4">
+        <div class="form-card sticky-top" style="top:70px">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-person-plus-fill text-primary me-2"></i>Новый пользователь
+            </h6>
+            <form method="post" asp-action="CreateUser">
+                <div class="mb-3">
+                    <label class="form-label">ФИО <span class="text-danger">*</span></label>
+                    <input type="text" name="FullName" class="form-control"
+                           placeholder="Фамилия Имя Отчество" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Логин <span class="text-danger">*</span></label>
+                    <input type="text" name="Username" class="form-control"
+                           placeholder="ivanov" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <input type="email" name="Email" class="form-control"
+                           placeholder="ivanov@ggtu.by" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Телефон</label>
+                    <input type="text" name="PhoneNumber" class="form-control"
+                           placeholder="+375291234567" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Роль <span class="text-danger">*</span></label>
+                    <select name="RoleId" class="form-select ts-select" required>
+                        <option value="">— Выбрать роль —</option>
+                        @foreach (var role in Model.Roles)
+                        {
+                            <option value="@role.Id">@role.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Пароль <span class="text-danger">*</span></label>
+                    <input type="text" name="Password" class="form-control"
+                           placeholder="Минимум 6 символов" required minlength="6" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Создать аккаунт
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

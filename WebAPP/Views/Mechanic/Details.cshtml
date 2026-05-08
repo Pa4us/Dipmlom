@@ -1,0 +1,118 @@
+@model RepairRequestDetailsViewModel
+@{ ViewData["Title"] = "Заявка #" + Model.Request.Id; }
+
+@functions {
+    static string PriorityText(string p) => p == "High" ? "Высокий 🔴" : p == "Normal" ? "Обычный 🟡" : "Низкий ⚪";
+    static string StatusText(string s) => s switch {
+        "Pending" => "Ожидает", "InProgress" => "В работе",
+        "Completed" => "Выполнено", "Cancelled" => "Отменено", _ => s };
+    static string StatusBadge(string s) => s switch {
+        "InProgress" => "badge-inprogress", "Completed" => "badge-completed",
+        "Cancelled" => "badge-cancelled", _ => "badge-pending" };
+}
+
+<div class="mb-3">
+    <a asp-action="Dashboard" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Назад к списку
+    </a>
+</div>
+
+<div class="row g-4">
+
+    <!-- Детали заявки -->
+    <div class="col-lg-6">
+        <div class="form-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">@Model.Request.Title</h5>
+                <span class="badge @StatusBadge(Model.Request.Status)">@StatusText(Model.Request.Status)</span>
+            </div>
+            <p class="text-muted">@Model.Request.Description</p>
+            <dl class="row small mb-0">
+                <dt class="col-5 text-muted">Блок</dt>
+                <dd class="col-7">@Model.Request.BlockNumber</dd>
+                @if (!string.IsNullOrEmpty(Model.Request.RoomNumber))
+                {
+                    <dt class="col-5 text-muted">Комната</dt>
+                    <dd class="col-7">@Model.Request.RoomNumber</dd>
+                }
+                <dt class="col-5 text-muted">Заявитель</dt>
+                <dd class="col-7">@Model.Request.RequestedByName</dd>
+                <dt class="col-5 text-muted">Приоритет</dt>
+                <dd class="col-7">@PriorityText(Model.Request.Priority)</dd>
+                <dt class="col-5 text-muted">Создана</dt>
+                <dd class="col-7">@Model.Request.CreatedAt.ToString("dd.MM.yyyy HH:mm")</dd>
+                @if (Model.Request.CompletedAt.HasValue)
+                {
+                    <dt class="col-5 text-muted">Завершена</dt>
+                    <dd class="col-7 text-success">@Model.Request.CompletedAt.Value.ToString("dd.MM.yyyy HH:mm")</dd>
+                }
+            </dl>
+        </div>
+
+        <!-- Изменить статус -->
+        @if (Model.Request.Status != "Completed" && Model.Request.Status != "Cancelled")
+        {
+            <div class="form-card">
+                <h6 class="fw-bold mb-3"><i class="bi bi-arrow-repeat me-2 text-primary"></i>Изменить статус</h6>
+                <form method="post" asp-action="UpdateStatus">
+                    <input type="hidden" name="id" value="@Model.Request.Id" />
+                    <div class="mb-3">
+                        <label class="form-label">Новый статус</label>
+                        <select name="status" class="form-select">
+                            @if (Model.Request.Status == "Pending")
+                            {
+                                <option value="InProgress">▶ Взять в работу</option>
+                            }
+                            <option value="Completed">✅ Выполнено</option>
+                            <option value="Cancelled">❌ Отменить</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Комментарий к изменению</label>
+                        <input type="text" name="comment" class="form-control"
+                               placeholder="Что было сделано..." />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check2 me-1"></i>Обновить статус
+                    </button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <!-- Комментарии -->
+    <div class="col-lg-6">
+        <div class="form-card mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-chat-left-text me-2 text-info"></i>Комментарии</h6>
+
+            @if (!Model.Comments.Any())
+            {
+                <p class="text-muted small">Комментариев пока нет</p>
+            }
+
+            <div class="d-flex flex-column gap-2 mb-3" style="max-height:300px;overflow-y:auto">
+                @foreach (var c in Model.Comments)
+                {
+                    <div class="rounded p-2 bg-light">
+                        <div class="d-flex justify-content-between small">
+                            <span class="fw-semibold">@c.UserName</span>
+                            <span class="text-muted">@c.CreatedAt.ToString("dd.MM HH:mm")</span>
+                        </div>
+                        <div class="small mt-1">@c.Comment</div>
+                    </div>
+                }
+            </div>
+
+            <form method="post" asp-action="AddComment">
+                <input type="hidden" name="id" value="@Model.Request.Id" />
+                <div class="input-group">
+                    <input type="text" name="comment" class="form-control"
+                           placeholder="Написать комментарий..." required />
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

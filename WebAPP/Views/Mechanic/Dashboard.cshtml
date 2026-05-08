@@ -1,0 +1,103 @@
+@model MechanicDashboardViewModel
+@{ ViewData["Title"] = "Заявки на ремонт"; }
+
+@functions {
+    static string PriorityIcon(string p) => p == "High" ? "🔴" : p == "Normal" ? "🟡" : "⚪";
+}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#new-tab">
+            Новые <span class="badge bg-danger ms-1">@Model.NewRequests.Count</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#my-tab">
+            Мои заявки <span class="badge bg-primary ms-1">@Model.MyRequests.Count</span>
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <!-- Новые (не назначены) -->
+    <div class="tab-pane fade show active" id="new-tab">
+        @if (!Model.NewRequests.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-check2-circle" style="font-size:2.5rem"></i>
+                <p class="mt-2">Новых заявок нет</p>
+            </div>
+        }
+        <div class="row g-3">
+            @foreach (var r in Model.NewRequests)
+            {
+                <div class="col-md-6">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <h6 class="fw-semibold mb-0">@PriorityIcon(r.Priority) @r.Title</h6>
+                                <span class="badge badge-pending">Ожидает</span>
+                            </div>
+                            <p class="small text-muted mb-2">@r.Description</p>
+                            <div class="small text-muted mb-3">
+                                <i class="bi bi-building me-1"></i>@r.BlockNumber
+                                @if (!string.IsNullOrEmpty(r.RoomNumber)) { <span> | Комн. @r.RoomNumber</span> }
+                                | <i class="bi bi-person me-1"></i>@r.RequestedByName
+                                | @r.CreatedAt.ToString("dd.MM.yyyy")
+                            </div>
+                            <a asp-action="Details" asp-route-id="@r.Id"
+                               class="btn btn-sm btn-outline-primary w-100">
+                                <i class="bi bi-eye me-1"></i>Открыть и взять в работу
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Мои заявки -->
+    <div class="tab-pane fade" id="my-tab">
+        @if (!Model.MyRequests.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox" style="font-size:2.5rem"></i>
+                <p class="mt-2">Назначенных заявок нет</p>
+            </div>
+        }
+        <div class="row g-3">
+            @foreach (var r in Model.MyRequests)
+            {
+                var badgeClass = r.Status switch {
+                    "InProgress" => "badge-inprogress", "Completed" => "badge-completed",
+                    "Cancelled" => "badge-cancelled", _ => "badge-pending" };
+                var statusText = r.Status switch {
+                    "Pending" => "Ожидает", "InProgress" => "В работе",
+                    "Completed" => "Выполнено", "Cancelled" => "Отменено", _ => r.Status };
+
+                <div class="col-md-6">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <h6 class="fw-semibold mb-0">@PriorityIcon(r.Priority) @r.Title</h6>
+                                <span class="badge @badgeClass">@statusText</span>
+                            </div>
+                            <p class="small text-muted mb-2">@r.Description</p>
+                            <div class="small text-muted mb-3">
+                                <i class="bi bi-building me-1"></i>@r.BlockNumber
+                                @if (!string.IsNullOrEmpty(r.RoomNumber)) { <span> | Комн. @r.RoomNumber</span> }
+                                | @r.CreatedAt.ToString("dd.MM.yyyy")
+                            </div>
+                            <a asp-action="Details" asp-route-id="@r.Id"
+                               class="btn btn-sm btn-outline-secondary w-100">
+                                <i class="bi bi-pencil-square me-1"></i>Подробнее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

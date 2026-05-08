@@ -1,0 +1,178 @@
+@model StudentsListViewModel
+@{ ViewData["Title"] = "Студенты"; }
+
+<!-- Поиск -->
+<div class="form-card mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-8">
+            <label class="form-label fw-semibold">Поиск студента</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@Model.Search"
+                       class="form-control border-start-0"
+                       placeholder="ФИО, логин или email..." id="searchInput" />
+            </div>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+                <i class="bi bi-search me-1"></i>Найти
+            </button>
+            @if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <a asp-action="Students" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+<!-- Итоги -->
+<div class="d-flex align-items-center gap-3 mb-3">
+    <span class="fw-semibold text-muted">
+        <i class="bi bi-people me-1"></i>
+        Найдено студентов: <strong class="text-dark">@Model.Students.Count</strong>
+    </span>
+    @if (!string.IsNullOrEmpty(Model.Search))
+    {
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+            Поиск: «@Model.Search»
+        </span>
+    }
+</div>
+
+<!-- Таблица студентов -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" id="studentsTable">
+            <thead>
+                <tr>
+                    <th style="width:30px">#</th>
+                    <th>ФИО</th>
+                    <th>Логин</th>
+                    <th>Email</th>
+                    <th>Телефон</th>
+                    <th>Блок / Комната</th>
+                    <th>Заселён с</th>
+                    <th class="text-center">Баллы</th>
+                    <th class="text-center">Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Students.Any())
+                {
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            <i class="bi bi-person-x" style="font-size:2rem"></i>
+                            <p class="mt-2 mb-0">Студенты не найдены</p>
+                        </td>
+                    </tr>
+                }
+
+                @{ int idx = 1; }
+                @foreach (var c in Model.Students)
+                {
+                    var points      = c.Rating?.TotalPoints ?? 0;
+                    var pointsClass = points > 0 ? "text-success" : points < 0 ? "text-danger" : "text-muted";
+                    var pointsSign  = points > 0 ? "+" : "";
+                    // data-search используется клиентским фильтром
+                    var searchData  = $"{c.User.FullName} {c.User.Username} {c.User.Email} {c.Residence?.BlockNumber} {c.Residence?.RoomNumber}".ToLower();
+
+                    <tr data-search="@searchData">
+                        <td class="text-muted">@(idx++)</td>
+
+                        <!-- ФИО -->
+                        <td>
+                            <div class="fw-semibold">@c.User.FullName</div>
+                        </td>
+
+                        <!-- Логин -->
+                        <td>
+                            <code class="text-secondary small">@c.User.Username</code>
+                        </td>
+
+                        <!-- Email -->
+                        <td class="small">
+                            <a href="mailto:@c.User.Email" class="text-decoration-none text-dark">
+                                @c.User.Email
+                            </a>
+                        </td>
+
+                        <!-- Телефон -->
+                        <td class="small text-muted">
+                            @(c.User.PhoneNumber ?? "—")
+                        </td>
+
+                        <!-- Блок / Комната -->
+                        <td>
+                            @if (c.Residence != null)
+                            {
+                                <span class="badge bg-secondary me-1">@c.Residence.BlockNumber</span>
+                                @if (!string.IsNullOrEmpty(c.Residence.RoomNumber))
+                                {
+                                    <span class="small text-muted">к. @c.Residence.RoomNumber</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Не заселён</span>
+                            }
+                        </td>
+
+                        <!-- Дата заселения -->
+                        <td class="small text-muted">
+                            @if (c.Residence != null)
+                            {
+                                @c.Residence.MoveInDate.ToString("dd.MM.yyyy")
+                                <div style="font-size:.75rem">(@c.Residence.DurationDays д.)</div>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+
+                        <!-- Баллы -->
+                        <td class="text-center">
+                            <span class="fw-bold @pointsClass">@pointsSign@points</span>
+                            @if (c.Rating != null && (c.Rating.EventPoints > 0 || c.Rating.PenaltyPoints > 0))
+                            {
+                                <div style="font-size:.72rem" class="text-muted">
+                                    +@c.Rating.EventPoints / -@c.Rating.PenaltyPoints
+                                </div>
+                            }
+                        </td>
+
+                        <!-- Статус -->
+                        <td class="text-center">
+                            @if (c.User.IsActive)
+                            {
+                                <span class="badge badge-completed">Активен</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-cancelled">Неактивен</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Мгновенный клиентский фильтр по строкам таблицы
+    // (дополняет серверный поиск — работает при повторном вводе без перезагрузки)
+    const searchInput = document.getElementById('searchInput');
+    const tableRows   = document.querySelectorAll('#studentsTable tbody tr[data-search]');
+
+    searchInput?.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        tableRows.forEach(row => {
+            row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
+        });
+    });
+</script>
+}

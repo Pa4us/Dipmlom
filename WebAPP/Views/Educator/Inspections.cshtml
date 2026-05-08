@@ -1,0 +1,216 @@
+@model InspectionsFilterViewModel
+@{ ViewData["Title"] = "Результаты проверок"; }
+
+@functions {
+    static string ScoreClass(int s) => s >= 8 ? "score-high" : s >= 5 ? "score-medium" : "score-low";
+}
+
+<!-- Фильтры -->
+<div class="form-card mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Дата с</label>
+            <input type="date" name="dateFrom" value="@Model.DateFrom" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Дата по</label>
+            <input type="date" name="dateTo" value="@Model.DateTo" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label fw-semibold">Этаж</label>
+            <select name="floor" class="form-select">
+                <option value="">— Все этажи —</option>
+                @for (int f = 1; f <= 9; f++)
+                {
+                    if (Model.SelectedFloor == f)
+                    {
+                        <option value="@f" selected>@f этаж</option>
+                    }
+                    else
+                    {
+                        <option value="@f">@f этаж</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-semibold">Блок</label>
+            <select name="blockId" class="form-select ts-select" id="blockSelect">
+                <option value="">— Все блоки —</option>
+                @foreach (var b in Model.Blocks)
+                {
+                    <option value="@b.Id"
+                            data-floor="@b.Floor"
+                            selected="@(Model.SelectedBlockId == b.Id)">
+                        Блок @b.BlockNumber (этаж @b.Floor)
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+                <i class="bi bi-funnel me-1"></i>Применить
+            </button>
+            <a asp-action="Inspections" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Кнопка экспорта (передаём текущие параметры фильтра) -->
+<div class="d-flex justify-content-end mb-3">
+    <a asp-action="ExportInspections"
+       asp-route-dateFrom="@Model.DateFrom"
+       asp-route-dateTo="@Model.DateTo"
+       asp-route-floor="@Model.SelectedFloor"
+       asp-route-blockId="@Model.SelectedBlockId"
+       class="btn btn-success">
+        <i class="bi bi-file-earmark-excel me-1"></i>Экспорт в Excel
+        @if (Model.Inspections.Any())
+        {
+            <span class="badge bg-white text-success ms-1">@Model.Inspections.Count</span>
+        }
+    </a>
+</div>
+
+<!-- Итоги фильтра -->
+@if (Model.Inspections.Any())
+{
+    var avg = Model.Inspections.Average(i => i.Score);
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="card stat-card border-start border-primary border-4">
+                <div class="card-body">
+                    <div class="stat-number text-primary">@Model.Inspections.Count</div>
+                    <div class="stat-label">Проверок в выборке</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card stat-card border-start border-success border-4">
+                <div class="card-body">
+                    <div class="stat-number text-success">@avg.ToString("F1")</div>
+                    <div class="stat-label">Средний балл</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card stat-card border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="stat-number text-warning">@Model.Inspections.Count(i => i.Score < 5)</div>
+                    <div class="stat-label">Неудовлетворительных</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Таблица -->
+<div class="table-card">
+    <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+        <span>
+            <i class="bi bi-clipboard-check me-2 text-primary"></i>Проверки
+            <span class="badge bg-secondary ms-2">@Model.Inspections.Count</span>
+        </span>
+        @if (Model.SelectedFloor.HasValue)
+        {
+            <span class="badge bg-primary">@Model.SelectedFloor этаж</span>
+        }
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Этаж</th>
+                    <th>Блок</th>
+                    <th>Зона</th>
+                    <th>Инспектор</th>
+                    <th>Оценка</th>
+                    <th>Комментарий</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in Model.Inspections)
+                {
+                    <tr>
+                        <td>@i.InspectionDate.ToString("dd.MM.yyyy")</td>
+                        <td class="text-center"><span class="badge bg-light text-dark border">@i.Floor эт.</span></td>
+                        <td><span class="badge bg-secondary">@i.BlockNumber</span></td>
+                        <td>@i.ZoneName</td>
+                        <td class="small">@i.InspectorName</td>
+                        <td><span class="score-badge @ScoreClass(i.Score)">@i.Score / 10</span></td>
+                        <td class="text-muted small">@i.Comment</td>
+                    </tr>
+                }
+                @if (!Model.Inspections.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Нет проверок для выбранных критериев</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Собираем данные всех блоков из нативного select ДО того,
+    // как Tom Select спрячет оригинальный элемент
+    const _blockOpts = [];
+    (function () {
+        const sel = document.getElementById('blockSelect');
+        if (!sel) return;
+        for (const opt of sel.options) {
+            if (!opt.value) continue; // пропускаем "— Все блоки —"
+            _blockOpts.push({ value: opt.value, text: opt.text, floor: opt.dataset.floor });
+        }
+    })();
+
+    const _selectedBlockId  = '@Model.SelectedBlockId';
+    const _selectedFloor    = '@Model.SelectedFloor';
+
+    // Запускаем после того, как site.js инициализирует Tom Select
+    document.addEventListener('DOMContentLoaded', () => {
+        const floorSel = document.querySelector('[name="floor"]');
+        const blockNative = document.getElementById('blockSelect');
+        let blockTs = blockNative?.tomselect; // экземпляр Tom Select
+
+        function filterBlocks(floor) {
+            if (!blockTs) { blockTs = blockNative?.tomselect; }
+            if (!blockTs) return;
+
+            // Пересобираем список опций в Tom Select
+            blockTs.clearOptions();
+
+            // Всегда возвращаем пустой пункт "— Все блоки —"
+            blockTs.addOption({ value: '', text: '— Все блоки —' });
+
+            for (const o of _blockOpts) {
+                if (!floor || o.floor === floor) {
+                    blockTs.addOption({ value: o.value, text: o.text });
+                }
+            }
+            blockTs.refreshOptions(false);
+
+            // Восстанавливаем ранее выбранный блок, если он попадает в фильтр
+            if (_selectedBlockId) {
+                const stillVisible = _blockOpts.some(
+                    o => o.value === _selectedBlockId && (!floor || o.floor === floor)
+                );
+                if (stillVisible) blockTs.setValue(_selectedBlockId, true);
+                else blockTs.setValue('', true); // возвращаемся к "Все блоки"
+            } else {
+                blockTs.setValue('', true);
+            }
+        }
+
+        floorSel?.addEventListener('change', function () {
+            filterBlocks(this.value);
+        });
+
+        // При загрузке страницы — применить сохранённый фильтр этажа
+        if (_selectedFloor) filterBlocks(_selectedFloor);
+    });
+</script>
+}

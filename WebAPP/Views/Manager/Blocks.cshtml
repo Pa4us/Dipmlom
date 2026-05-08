@@ -1,0 +1,135 @@
+@model ManagerBlocksViewModel
+@{ ViewData["Title"] = "Блоки"; }
+
+<div class="row g-4">
+
+    <!-- Список блоков -->
+    <div class="col-lg-8">
+        @if (!Model.Blocks.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-building" style="font-size:3rem"></i>
+                <p class="mt-2">Блоков нет</p>
+            </div>
+        }
+
+        @foreach (var b in Model.Blocks)
+        {
+            var rooms = Model.AllRooms.Where(r => r.BlockId == b.Id).ToList();
+            var free  = rooms.Count(r => r.FreePlaces > 0);
+
+            <div class="card stat-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">
+                                <i class="bi bi-building me-2 text-secondary"></i>Блок @b.BlockNumber
+                            </h5>
+                            <div class="small text-muted">
+                                Этаж @b.Floor · Индекс @b.BlockIndex ·
+                                <span class="text-dark fw-semibold">@rooms.Count комнат</span> ·
+                                <span class="text-success">@free свободных</span>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    data-bs-toggle="modal" data-bs-target="#editBlock-@b.Id">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form method="post" asp-action="DeleteBlock"
+                                  onsubmit="return confirm('Удалить блок «@b.BlockNumber»? Все комнаты блока будут удалены.')">
+                                <input type="hidden" name="id" value="@b.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Комнаты блока -->
+                    @if (rooms.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var r in rooms.OrderBy(r => r.RoomNumber))
+                            {
+                                var badgeColor = r.FreePlaces == 0 ? "bg-danger-subtle text-danger border-danger-subtle"
+                                               : r.FreePlaces == r.Capacity ? "bg-success-subtle text-success border-success-subtle"
+                                               : "bg-warning-subtle text-warning border-warning-subtle";
+                                <span class="badge @badgeColor border" style="font-size:.8rem">
+                                    @r.RoomNumber
+                                    <span class="ms-1 opacity-75">@r.CurrentOccupancy/@r.Capacity</span>
+                                </span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="small text-muted fst-italic">Комнат нет</div>
+                    }
+                </div>
+            </div>
+
+            <!-- Модалка редактирования блока -->
+            <div class="modal fade" id="editBlock-@b.Id" tabindex="-1">
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Редактировать блок @b.BlockNumber</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="post" asp-action="EditBlock">
+                            <div class="modal-body">
+                                <input type="hidden" name="Id" value="@b.Id" />
+                                <div class="mb-3">
+                                    <label class="form-label">Номер блока <span class="text-danger">*</span></label>
+                                    <input type="text" name="BlockNumber" class="form-control" value="@b.BlockNumber" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Этаж <span class="text-danger">*</span></label>
+                                    <input type="number" name="Floor" class="form-control" value="@b.Floor" min="1" required />
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label">Индекс <span class="text-danger">*</span></label>
+                                    <input type="number" name="BlockIndex" class="form-control" value="@b.BlockIndex" min="1" required />
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                                <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Форма создания блока -->
+    <div class="col-lg-4">
+        <div class="form-card sticky-top" style="top:70px">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-building-add text-primary me-2"></i>Добавить блок
+            </h6>
+            <form method="post" asp-action="CreateBlock">
+                <div class="mb-3">
+                    <label class="form-label">Номер блока <span class="text-danger">*</span></label>
+                    <input type="text" name="BlockNumber" class="form-control"
+                           placeholder="Например: 4-1" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Этаж <span class="text-danger">*</span></label>
+                    <input type="number" name="Floor" class="form-control"
+                           placeholder="4" min="1" required />
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Индекс блока на этаже <span class="text-danger">*</span></label>
+                    <input type="number" name="BlockIndex" class="form-control"
+                           placeholder="1" min="1" required />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Создать блок
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
