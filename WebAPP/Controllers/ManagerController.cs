@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedModel.DTOs;
+using System.Text.Json;
 using WebAPP.Models.ViewModels;
 using WebAPP.Services;
 
@@ -259,6 +260,104 @@ public class ManagerController : Controller
         TempData[result?.Success == true ? "Success" : "Error"] =
             result?.Success == true ? "Студент заселён" : result?.Message ?? "Ошибка при заселении";
         return RedirectToAction("Residences");
+    }
+
+    // ─── Импорт аккаунтов из Excel ───────────────────────────────────────────
+
+    [HttpGet]
+    public IActionResult ImportUsers()
+    {
+        ViewData["Title"] = "Импорт аккаунтов";
+        return View();
+    }
+
+    /// <summary>Шаг 1 — загружаем файл, парсим, отправляем на preview (dry-run)</summary>
+    [HttpPost]
+    public async Task<IActionResult> ImportUsers(IFormFile? file)
+    {
+        ViewData["Title"] = "Импорт аккаунтов";
+
+        if (file == null || file.Length == 0)
+        {
+            ModelState.AddModelError("", "Выберите файл Excel (.xlsx)");
+            return View();
+        }
+        if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError("", "Поддерживается только формат .xlsx");
+            return View();
+        }
+
+        // Парсим Excel в DTO
+        using var stream = file.OpenReadStream();
+        var (rows, parseError) = ExcelImportService.ParseUsersFile(stream);
+        if (parseError != null)
+        {
+            ModelState.AddModelError("", parseError);
+            return View();
+        }
+
+        // Dry-run: валидация + генерация паролей
+        var resp = await _api.PostAsync<ImportUsersResultDto>(
+            "api/users/import",
+            new ImportUsersRequestDto { Rows = rows, DryRun = true });
+
+        if (resp?.Success != true || resp.Data == null)
+        {
+            ModelState.AddModelError("", resp?.Message ?? "Ошибка при проверке файла");
+            return View();
+        }
+
+        var vm = new ImportUsersPreviewViewModel
+        {
+            Result       = resp.Data,
+            ValidRowsJson = JsonSerializer.Serialize(resp.Data.ValidRows),
+        };
+        return View("ImportUsersPreview", vm);
+    }
+
+    /// <summary>Шаг 2 — подтверждение, реальное создание аккаунтов</summary>
+    [HttpPost]
+    public async Task<IActionResult> ImportUsersConfirm(string validRowsJson)
+    {
+        ViewData["Title"] = "Импорт аккаунтов";
+
+        List<ImportUserRowDto>? rows;
+        try { rows = JsonSerializer.Deserialize<List<ImportUserRowDto>>(validRowsJson); }
+        catch { TempData["Error"] = "Не удалось обработать данные. Попробуйте снова."; return RedirectToAction("ImportUsers"); }
+
+        if (rows == null || rows.Count == 0)
+        { TempData["Error"] = "Нет строк для импорта."; return RedirectToAction("ImportUsers"); }
+
+        var resp = await _api.PostAsync<ImportUsersResultDto>(
+            "api/users/import",
+            new ImportUsersRequestDto { Rows = rows, DryRun = false });
+
+        if (resp?.Success != true || resp.Data == null)
+        {
+            TempData["Error"] = resp?.Message ?? "Ошибка при создании аккаунтов";
+            return RedirectToAction("ImportUsers");
+        }
+
+        // Генерируем Excel с паролями для скачивания
+        var passwordStream = ExcelExportService.ExportImportedPasswords(resp.Data.ValidRows);
+        var base64 = Convert.ToBase64String(((MemoryStream)passwordStream).ToArray());
+
+        var vm = new ImportUsersResultViewModel
+        {
+            Result              = resp.Data,
+            PasswordReportBase64 = base64,
+        };
+        return View("ImportUsersResult", vm);
+    }
+
+    /// <summary>Шаблон Excel для импорта аккаунтов</summary>
+    public IActionResult ImportUsersTemplate()
+    {
+        var stream   = ExcelExportService.ExportImportUsersTemplate();
+        return File(stream,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Шаблон_импорта_аккаунтов.xlsx");
     }
 
     public async Task<IActionResult> ExportResidences()

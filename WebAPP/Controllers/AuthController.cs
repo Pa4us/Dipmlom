@@ -88,10 +88,17 @@ public class AuthController : Controller
             return View();
         }
 
-        await _api.PostAsync<bool>("api/auth/forgot-password", new { Email = email.Trim() });
+        var result = await _api.PostAsync<bool>("api/auth/forgot-password", new { Email = email.Trim() });
 
-        // Не раскрываем, найден ли email — всегда показываем успех
-        ViewBag.Sent = true;
+        if (result?.Success == true)
+        {
+            ViewBag.Sent = true;
+        }
+        else
+        {
+            // Показываем реальную ошибку (ошибка SMTP, соединения и т.п.)
+            ModelState.AddModelError("", result?.Message ?? "Не удалось отправить письмо. Попробуйте позже.");
+        }
         return View();
     }
 

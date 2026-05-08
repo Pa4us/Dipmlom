@@ -1,0 +1,69 @@
+@{ ViewData["Title"] = "Импорт аккаунтов"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        <div class="form-card">
+            <h6 class="fw-bold mb-1"><i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Загрузить файл аккаунтов</h6>
+            <p class="text-muted small mb-4">
+                Загрузите Excel-файл (.xlsx) со списком пользователей. После загрузки отобразится
+                превью — проверьте данные и подтвердите создание аккаунтов.
+            </p>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger py-2">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <div>@err.ErrorMessage</div>
+                    }
+                </div>
+            }
+
+            <form method="post" enctype="multipart/form-data" asp-action="ImportUsers">
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Файл Excel <span class="text-danger">*</span></label>
+                    <input type="file" name="file" accept=".xlsx" class="form-control" required />
+                    <div class="form-text">Формат: .xlsx. Обязательные колонки: <strong>ФИО, Логин, Email</strong>. Необязательная: <strong>Роль</strong> (по умолчанию — Student)</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i>Проверить файл
+                    </button>
+                    <a asp-action="ImportUsersTemplate" class="btn btn-outline-success">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Скачать шаблон
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Инструкция -->
+        <div class="form-card mt-4">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Формат файла</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-2">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ФИО</th><th>Логин</th><th>Email</th><th>Роль</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Иванов Иван Иванович</td>
+                            <td>ivanov</td>
+                            <td>ivanov@ggtu.by</td>
+                            <td>Student</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <ul class="small text-muted mb-0">
+                <li>Пароли генерируются автоматически — после импорта скачайте файл с паролями</li>
+                <li>Доступные роли: <code>Student</code>, <code>Inspector</code>, <code>Educator</code>, <code>Mechanic</code>, <code>Manager</code></li>
+                <li>Строки с ошибками (дублирующийся логин, незнакомая роль) будут показаны отдельно</li>
+            </ul>
+        </div>
+
+    </div>
+</div>

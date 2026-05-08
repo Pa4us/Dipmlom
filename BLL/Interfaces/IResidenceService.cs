@@ -14,5 +14,6 @@ namespace BLL.Interfaces
         Task<ApiResponse<IEnumerable<ResidenceDto>>> GetResidenceHistoryByUserAsync(int userId);
         Task<ApiResponse<IEnumerable<ResidenceDto>>> GetCurrentResidentsByRoomAsync(int roomId);
         Task<ApiResponse<ResidenceDto>> CheckOutAsync(int residenceId, DateOnly moveOutDate);
+        Task<ApiResponse<ImportResidencesResultDto>> ImportResidencesAsync(ImportResidencesRequestDto dto);
     }
 }

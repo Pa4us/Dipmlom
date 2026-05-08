@@ -1,4 +1,5 @@
 using SharedModel.DTOs;
+using System.Text.Json;
 
 namespace WebAPP.Models.ViewModels;
 
@@ -46,4 +47,18 @@ public class ManagerResidencesViewModel
     public List<UserDto>      Students          { get; set; } = new();
     public List<RoomDto>      Rooms             { get; set; } = new();
     public List<BlockDto>     Blocks            { get; set; } = new();
+}
+
+public class ImportUsersPreviewViewModel
+{
+    public ImportUsersResultDto Result { get; set; } = new();
+    /// <summary>Валидные строки, сериализованные в JSON — для скрытого поля формы подтверждения</summary>
+    public string ValidRowsJson { get; set; } = "[]";
+}
+
+public class ImportUsersResultViewModel
+{
+    public ImportUsersResultDto Result { get; set; } = new();
+    /// <summary>Excel-файл с паролями для скачивания (base64)</summary>
+    public string? PasswordReportBase64 { get; set; }
 }

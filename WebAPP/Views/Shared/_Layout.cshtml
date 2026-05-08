@@ -58,6 +58,12 @@
                         <i class="bi bi-tools"></i> Заявки на ремонт
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Manager" && ViewContext.RouteData.Values["action"]?.ToString()?.StartsWith("ImportUsers") == true ? "active" : "")"
+                       asp-controller="Manager" asp-action="ImportUsers">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Импорт аккаунтов
+                    </a>
+                </li>
             }
 
             @if (User.IsInRole("Educator"))
@@ -97,6 +103,12 @@
                     <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Schedule" ? "active" : "")"
                        asp-controller="Educator" asp-action="Schedule">
                         <i class="bi bi-calendar-week"></i> Расписание проверок
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString()?.StartsWith("ImportResidences") == true ? "active" : "")"
+                       asp-controller="Educator" asp-action="ImportResidences">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Импорт заселения
                     </a>
                 </li>
             }

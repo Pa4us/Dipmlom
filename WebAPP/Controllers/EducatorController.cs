@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedModel.DTOs;
+using System.Globalization;
+using System.Text.Json;
 using WebAPP.Models.ViewModels;
 using WebAPP.Services;
-using System.Globalization;
 
 namespace WebAPP.Controllers;
 
@@ -290,6 +291,74 @@ public class EducatorController : Controller
         }).OrderBy(c => c.User.FullName).ToList();
 
         return View(new StudentsListViewModel { Students = cards, Search = search });
+    }
+
+    // ─── Импорт заселения из Excel ───────────────────────────────────────────
+
+    [HttpGet]
+    public IActionResult ImportResidences()
+    {
+        ViewData["Title"] = "Импорт заселения";
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ImportResidences(IFormFile? file)
+    {
+        ViewData["Title"] = "Импорт заселения";
+
+        if (file == null || file.Length == 0)
+        { ModelState.AddModelError("", "Выберите файл Excel (.xlsx)"); return View(); }
+
+        if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+        { ModelState.AddModelError("", "Поддерживается только формат .xlsx"); return View(); }
+
+        using var stream = file.OpenReadStream();
+        var (rows, parseError) = ExcelImportService.ParseResidencesFile(stream);
+        if (parseError != null)
+        { ModelState.AddModelError("", parseError); return View(); }
+
+        var resp = await _api.PostAsync<ImportResidencesResultDto>(
+            "api/residences/import",
+            new ImportResidencesRequestDto { Rows = rows, DryRun = true });
+
+        if (resp?.Success != true || resp.Data == null)
+        { ModelState.AddModelError("", resp?.Message ?? "Ошибка при проверке файла"); return View(); }
+
+        var vm = new ImportResidencesPreviewViewModel
+        {
+            Result        = resp.Data,
+            ValidRowsJson = JsonSerializer.Serialize(resp.Data.ValidRows),
+        };
+        return View("ImportResidencesPreview", vm);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ImportResidencesConfirm(string validRowsJson)
+    {
+        List<ImportResidenceRowDto>? rows;
+        try { rows = JsonSerializer.Deserialize<List<ImportResidenceRowDto>>(validRowsJson); }
+        catch { TempData["Error"] = "Не удалось обработать данные. Попробуйте снова."; return RedirectToAction("ImportResidences"); }
+
+        if (rows == null || rows.Count == 0)
+        { TempData["Error"] = "Нет строк для импорта."; return RedirectToAction("ImportResidences"); }
+
+        var resp = await _api.PostAsync<ImportResidencesResultDto>(
+            "api/residences/import",
+            new ImportResidencesRequestDto { Rows = rows, DryRun = false });
+
+        if (resp?.Success != true || resp.Data == null)
+        { TempData["Error"] = resp?.Message ?? "Ошибка при заселении"; return RedirectToAction("ImportResidences"); }
+
+        return View("ImportResidencesResult", new ImportResidencesResultViewModel { Result = resp.Data });
+    }
+
+    public IActionResult ImportResidencesTemplate()
+    {
+        var stream = ExcelExportService.ExportImportResidencesTemplate();
+        return File(stream,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Шаблон_заселения.xlsx");
     }
 
     // ─── Экспорт в Excel ─────────────────────────────────────────────────────

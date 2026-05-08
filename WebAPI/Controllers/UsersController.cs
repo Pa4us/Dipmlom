@@ -85,5 +85,14 @@ namespace WebAPI.Controllers
             var response = await _userService.DeleteAsync(id);
             return HandleResponse(response);
         }
+
+        /// <summary>Импорт аккаунтов из Excel (превью + применение)</summary>
+        [HttpPost("import")]
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> ImportUsers([FromBody] ImportUsersRequestDto dto)
+        {
+            var response = await _userService.ImportUsersAsync(dto);
+            return HandleResponse(response);
+        }
     }
 }

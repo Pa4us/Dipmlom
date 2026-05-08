@@ -16,13 +16,20 @@ namespace BLL.Services
     public class UserService: BaseService<User, UserDto, CreateUserDto, UpdateUserDto>, IUserService
     {
         private readonly IRepository<Residence> _residenceRepository;
+        private readonly IRepository<Role>      _roleRepository;
         private readonly IJwtService _jwtService;
 
-        public UserService(IRepository<User> repository, IRepository<Residence> residenceRepository, IMapper mapper, IJwtService jwtService)
+        public UserService(
+            IRepository<User>      repository,
+            IRepository<Residence> residenceRepository,
+            IRepository<Role>      roleRepository,
+            IMapper                mapper,
+            IJwtService            jwtService)
             : base(repository, mapper)
         {
             _residenceRepository = residenceRepository;
-            _jwtService = jwtService;
+            _roleRepository      = roleRepository;
+            _jwtService          = jwtService;
         }
 
         private string HashPassword(string password)
@@ -171,6 +178,94 @@ namespace BLL.Services
             await _repository.SaveChangesAsync();
 
             return ApiResponse<bool>.Ok(true, "Пароль сброшен");
+        }
+
+        public async Task<ApiResponse<ImportUsersResultDto>> ImportUsersAsync(ImportUsersRequestDto dto)
+        {
+            // Загружаем всех существующих пользователей и роли за один запрос
+            var allUsers = await _repository.GetAllAsync();
+            var existingUsernames = allUsers.Select(u => u.Username.ToLower()).ToHashSet();
+            var existingEmails    = allUsers.Select(u => u.Email.ToLower()).ToHashSet();
+
+            var allRoles = await _roleRepository.GetAllAsync(); // IRepository<Role>
+            var roleMap  = allRoles.ToDictionary(r => r.Name.ToLower(), r => r.Id);
+
+            var result = new ImportUsersResultDto();
+
+            // Логины/email внутри самого файла — проверяем дубликаты между строками
+            var seenUsernames = new HashSet<string>();
+            var seenEmails    = new HashSet<string>();
+
+            foreach (var row in dto.Rows)
+            {
+                var errors = new List<string>();
+
+                if (string.IsNullOrWhiteSpace(row.FullName))  errors.Add("Не указано ФИО");
+                if (string.IsNullOrWhiteSpace(row.Username))  errors.Add("Не указан логин");
+                if (string.IsNullOrWhiteSpace(row.Email))     errors.Add("Не указан email");
+
+                var uLow = row.Username?.ToLower() ?? "";
+                var eLow = row.Email?.ToLower() ?? "";
+
+                if (!string.IsNullOrEmpty(uLow))
+                {
+                    if (existingUsernames.Contains(uLow))       errors.Add("Логин уже занят");
+                    else if (!seenUsernames.Add(uLow))          errors.Add("Логин дублируется в файле");
+                }
+                if (!string.IsNullOrEmpty(eLow))
+                {
+                    if (existingEmails.Contains(eLow))          errors.Add("Email уже используется");
+                    else if (!seenEmails.Add(eLow))             errors.Add("Email дублируется в файле");
+                }
+
+                var roleName = (row.RoleName?.Trim() ?? "student").ToLower();
+                if (!roleMap.ContainsKey(roleName))             errors.Add($"Роль «{row.RoleName}» не найдена");
+
+                if (errors.Any())
+                {
+                    row.Error = string.Join("; ", errors);
+                    result.InvalidRows.Add(row);
+                    continue;
+                }
+
+                // Генерируем пароль (одинаковый при dry-run и при реальном создании)
+                if (string.IsNullOrEmpty(row.GeneratedPassword))
+                    row.GeneratedPassword = GeneratePassword();
+
+                result.ValidRows.Add(row);
+
+                if (!dto.DryRun)
+                {
+                    var user = new User
+                    {
+                        FullName     = row.FullName.Trim(),
+                        Username     = row.Username.Trim(),
+                        Email        = row.Email.Trim(),
+                        RoleId       = roleMap[roleName],
+                        PasswordHash = HashPassword(row.GeneratedPassword),
+                        IsActive     = true,
+                        CreatedAt    = DateTime.Now,
+                    };
+                    await _repository.AddAsync(user);
+                    result.CreatedCount++;
+                }
+            }
+
+            if (!dto.DryRun && result.CreatedCount > 0)
+                await _repository.SaveChangesAsync();
+
+            return ApiResponse<ImportUsersResultDto>.Ok(result,
+                dto.DryRun
+                    ? $"Проверка завершена: {result.ValidRows.Count} строк валидны, {result.InvalidRows.Count} с ошибками"
+                    : $"Создано {result.CreatedCount} аккаунтов");
+        }
+
+        private static string GeneratePassword()
+        {
+            // Символы без визуально похожих: 0/O, 1/l/I
+            const string chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(8);
+            return new string(bytes.Select(b => chars[b % chars.Length]).ToArray());
         }
     }
 }

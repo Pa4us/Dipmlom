@@ -100,10 +100,10 @@ namespace WebAPI.Controllers
             {
                 await _emailService.SendAsync(dto.Email.Trim(), "Сброс пароля — Общежитие ГГТУ", html);
             }
-            catch
+            catch (Exception ex)
             {
-                // Не раскрываем технические детали ошибки клиенту
-                return StatusCode(500, ApiResponse<bool>.Fail("Ошибка отправки письма. Попробуйте позже."));
+                // Возвращаем реальную причину, чтобы её можно было диагностировать
+                return StatusCode(500, ApiResponse<bool>.Fail($"Ошибка отправки письма: {ex.Message}"));
             }
 
             return Ok(ApiResponse<bool>.Ok(true, "Письмо с инструкциями отправлено на указанный email"));

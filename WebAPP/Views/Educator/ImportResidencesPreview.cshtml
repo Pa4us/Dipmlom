@@ -1,0 +1,108 @@
+@model ImportResidencesPreviewViewModel
+@{ ViewData["Title"] = "Импорт заселения — превью"; }
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="card stat-card border-start border-success border-4">
+            <div class="card-body">
+                <div class="stat-number text-success">@Model.Result.ValidRows.Count</div>
+                <div class="stat-label">Готовы к заселению</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card stat-card border-start border-danger border-4">
+            <div class="card-body">
+                <div class="stat-number text-danger">@Model.Result.InvalidRows.Count</div>
+                <div class="stat-label">Строк с ошибками</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card stat-card border-start border-primary border-4">
+            <div class="card-body">
+                <div class="stat-number text-primary">@(Model.Result.ValidRows.Count + Model.Result.InvalidRows.Count)</div>
+                <div class="stat-label">Всего строк</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Result.ValidRows.Any())
+{
+    <div class="table-card mb-4">
+        <div class="p-3 border-bottom fw-semibold text-success">
+            <i class="bi bi-check-circle-fill me-2"></i>Будут заселены
+            <span class="badge bg-success ms-1">@Model.Result.ValidRows.Count</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Логин</th><th>ФИО</th><th>Блок</th><th>Комната</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Result.ValidRows)
+                    {
+                        <tr>
+                            <td class="text-muted small">@r.RowNumber</td>
+                            <td><code>@r.Username</code></td>
+                            <td>@(r.FullName ?? "—")</td>
+                            <td><span class="badge bg-secondary">@r.BlockNumber</span></td>
+                            <td>
+                                <span class="text-success fw-semibold">@r.AssignedRoom</span>
+                                @if (string.IsNullOrEmpty(r.RoomNumber))
+                                {
+                                    <span class="text-muted small ms-1">(авто)</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.Result.InvalidRows.Any())
+{
+    <div class="table-card mb-4">
+        <div class="p-3 border-bottom fw-semibold text-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Ошибки — будут пропущены
+            <span class="badge bg-danger ms-1">@Model.Result.InvalidRows.Count</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr><th>#</th><th>Логин</th><th>Блок</th><th>Причина ошибки</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Result.InvalidRows)
+                    {
+                        <tr class="table-danger">
+                            <td class="text-muted small">@r.RowNumber</td>
+                            <td>@r.Username</td>
+                            <td>@r.BlockNumber</td>
+                            <td class="text-danger small"><i class="bi bi-x-circle me-1"></i>@r.Error</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<div class="d-flex gap-3 align-items-center">
+    @if (Model.Result.ValidRows.Any())
+    {
+        <form method="post" asp-action="ImportResidencesConfirm">
+            <input type="hidden" name="validRowsJson" value="@Model.ValidRowsJson" />
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-house-check me-1"></i>
+                Заселить @Model.Result.ValidRows.Count студент(ов)
+            </button>
+        </form>
+    }
+    <a asp-action="ImportResidences" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Загрузить другой файл
+    </a>
+</div>

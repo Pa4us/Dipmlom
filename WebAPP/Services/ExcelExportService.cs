@@ -337,6 +337,114 @@ public static class ExcelExportService
         return ToStream(wb);
     }
 
+    // ─── Шаблон для импорта аккаунтов ────────────────────────────────────────
+
+    public static Stream ExportImportUsersTemplate()
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.AddWorksheet("Аккаунты");
+
+        ws.Cell(1, 1).Value = "Шаблон импорта аккаунтов — заполните начиная со строки 3";
+        ws.Range(1, 1, 1, 4).Merge();
+        ws.Row(1).Style.Font.Italic = true;
+        ws.Row(1).Style.Font.FontColor = XLColor.Gray;
+
+        var hdr = ws.Row(2);
+        hdr.Cell(1).Value = "ФИО";
+        hdr.Cell(2).Value = "Логин";
+        hdr.Cell(3).Value = "Email";
+        hdr.Cell(4).Value = "Роль";
+        StyleHeader(hdr, 4);
+
+        // Пример
+        ws.Cell(3, 1).Value = "Иванов Иван Иванович";
+        ws.Cell(3, 2).Value = "ivanov";
+        ws.Cell(3, 3).Value = "ivanov@ggtu.by";
+        ws.Cell(3, 4).Value = "Student";
+        ws.Row(3).Style.Font.FontColor = XLColor.LightGray;
+
+        // Подсказка по ролям
+        ws.Cell(5, 1).Value = "Доступные роли: Student, Inspector, Educator, Mechanic, Manager";
+        ws.Range(5, 1, 5, 4).Merge();
+        ws.Row(5).Style.Font.Italic = true;
+        ws.Row(5).Style.Font.FontColor = XLColor.Gray;
+
+        ws.Columns().AdjustToContents();
+        return ToStream(wb);
+    }
+
+    // ─── Шаблон для импорта заселения ────────────────────────────────────────
+
+    public static Stream ExportImportResidencesTemplate()
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.AddWorksheet("Заселение");
+
+        ws.Cell(1, 1).Value = "Шаблон импорта заселения — заполните начиная со строки 3";
+        ws.Range(1, 1, 1, 4).Merge();
+        ws.Row(1).Style.Font.Italic = true;
+        ws.Row(1).Style.Font.FontColor = XLColor.Gray;
+
+        var hdr = ws.Row(2);
+        hdr.Cell(1).Value = "Логин";
+        hdr.Cell(2).Value = "ФИО";
+        hdr.Cell(3).Value = "Блок";
+        hdr.Cell(4).Value = "Комната";
+        StyleHeader(hdr, 4);
+
+        // Пример
+        ws.Cell(3, 1).Value = "ivanov";
+        ws.Cell(3, 2).Value = "Иванов Иван Иванович";
+        ws.Cell(3, 3).Value = "44-1";
+        ws.Cell(3, 4).Value = "";
+        ws.Row(3).Style.Font.FontColor = XLColor.LightGray;
+
+        ws.Cell(5, 1).Value = "Колонка «Комната» необязательна — если не указана, студент будет заселён в первую свободную комнату блока";
+        ws.Range(5, 1, 5, 4).Merge();
+        ws.Row(5).Style.Font.Italic = true;
+        ws.Row(5).Style.Font.FontColor = XLColor.Gray;
+
+        ws.Columns().AdjustToContents();
+        return ToStream(wb);
+    }
+
+    // ─── Отчёт с паролями после импорта аккаунтов ────────────────────────────
+
+    public static Stream ExportImportedPasswords(List<ImportUserRowDto> rows)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.AddWorksheet("Пароли");
+
+        const int cols = 4;
+        SetTitle(ws, $"Созданные аккаунты — {DateTime.Today:dd.MM.yyyy}", cols);
+
+        var hdr = ws.Row(2);
+        hdr.Cell(1).Value = "ФИО";
+        hdr.Cell(2).Value = "Логин";
+        hdr.Cell(3).Value = "Email";
+        hdr.Cell(4).Value = "Пароль";
+        StyleHeader(hdr, cols);
+
+        int row = 3;
+        foreach (var r in rows)
+        {
+            ws.Cell(row, 1).Value = r.FullName;
+            ws.Cell(row, 2).Value = r.Username;
+            ws.Cell(row, 3).Value = r.Email;
+            ws.Cell(row, 4).Value = r.GeneratedPassword;
+
+            if (row % 2 == 0)
+                ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#f5f5f5");
+            row++;
+        }
+
+        // Колонку с паролем делаем чуть шире
+        ws.Columns().AdjustToContents();
+        ws.Column(4).Width = Math.Max(ws.Column(4).Width, 14);
+        ws.SheetView.FreezeRows(2);
+        return ToStream(wb);
+    }
+
     // ─── Хелпер: сохраняем в MemoryStream ────────────────────────────────────
 
     private static Stream ToStream(XLWorkbook wb)

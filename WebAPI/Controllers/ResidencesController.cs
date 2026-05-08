@@ -76,6 +76,15 @@ namespace WebAPI.Controllers
             var response = await _residenceService.CheckOutAsync(id, dto.MoveOutDate);
             return HandleResponse(response);
         }
+
+        /// <summary>Массовое заселение из Excel (превью + применение)</summary>
+        [HttpPost("import")]
+        [Authorize(Roles = "Educator")]
+        public async Task<IActionResult> ImportResidences([FromBody] ImportResidencesRequestDto dto)
+        {
+            var response = await _residenceService.ImportResidencesAsync(dto);
+            return HandleResponse(response);
+        }
     }
 
     public class CheckOutDto

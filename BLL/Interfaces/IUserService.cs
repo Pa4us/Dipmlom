@@ -18,5 +18,6 @@ namespace BLL.Interfaces
         Task<ApiResponse<bool>> ChangePasswordAsync(int userId, string oldPassword, string newPassword);
         Task<ApiResponse<bool>> ResetPasswordAsync(string email, string newPassword);
         Task<ApiResponse<bool>> AdminResetPasswordAsync(int userId, string newPassword);
+        Task<ApiResponse<ImportUsersResultDto>> ImportUsersAsync(ImportUsersRequestDto dto);
     }
 }

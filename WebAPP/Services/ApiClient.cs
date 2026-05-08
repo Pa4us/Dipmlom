@@ -62,9 +62,13 @@ public class ApiClient
             var content = new StringContent(JsonSerializer.Serialize(body, JsonOpts), Encoding.UTF8, "application/json");
             using var req = BuildRequest(HttpMethod.Post, url, content);
             var resp = await _http.SendAsync(req);
+            // Читаем тело даже при ошибочных статусах (4xx, 5xx) — там JSON с Message
             return await Read<T>(resp);
         }
-        catch { return null; }
+        catch (Exception ex)
+        {
+            return ApiResponse<T>.Fail($"Ошибка соединения с сервером: {ex.Message}");
+        }
     }
 
     public async Task<ApiResponse<T>?> PatchAsync<T>(string url, object body)

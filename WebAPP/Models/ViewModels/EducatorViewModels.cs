@@ -56,3 +56,14 @@ public class StudentsListViewModel
     public List<StudentCardDto> Students { get; set; } = new();
     public string? Search { get; set; }
 }
+
+public class ImportResidencesPreviewViewModel
+{
+    public ImportResidencesResultDto Result { get; set; } = new();
+    public string ValidRowsJson { get; set; } = "[]";
+}
+
+public class ImportResidencesResultViewModel
+{
+    public ImportResidencesResultDto Result { get; set; } = new();
+}
