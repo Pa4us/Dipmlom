@@ -46,20 +46,24 @@ public class InspectorController : Controller
             latestInspection = inspResp?.Data?.OrderByDescending(i => i.InspectionDate).FirstOrDefault();
         }
 
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var myInsp = allInspTask.Result?.Data?
             .Where(i => i.InspectorId == userId)
             .OrderByDescending(i => i.InspectionDate)
             .ToList() ?? new();
 
+        var alreadyInspectedToday = myInsp.Any(i => i.InspectionDate == today);
+
         var vm = new InspectorDashboardViewModel
         {
-            Residence             = residenceTask.Result?.Data,
-            LatestBlockInspection = latestInspection,
-            Rating                = ratingTask.Result?.Data,
-            MyRecentRequests      = requestsTask.Result?.Data?.OrderByDescending(r => r.CreatedAt).Take(5).ToList() ?? new(),
-            MyInspections         = myInsp,
-            Blocks                = blocks,
-            IsInspectionDay       = _schedule.IsInspectionAllowedToday(),
+            Residence              = residenceTask.Result?.Data,
+            LatestBlockInspection  = latestInspection,
+            Rating                 = ratingTask.Result?.Data,
+            MyRecentRequests       = requestsTask.Result?.Data?.OrderByDescending(r => r.CreatedAt).Take(5).ToList() ?? new(),
+            MyInspections          = myInsp,
+            Blocks                 = blocks,
+            IsInspectionDay        = _schedule.IsInspectionAllowedToday(),
+            AlreadyInspectedToday  = alreadyInspectedToday,
         };
         return View(vm);
     }

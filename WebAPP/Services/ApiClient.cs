@@ -110,6 +110,30 @@ public class ApiClient
     {
         var json = await resp.Content.ReadAsStringAsync();
         if (string.IsNullOrWhiteSpace(json)) return null;
-        return JsonSerializer.Deserialize<ApiResponse<T>>(json, JsonOpts);
+        try
+        {
+            return JsonSerializer.Deserialize<ApiResponse<T>>(json, JsonOpts);
+        }
+        catch
+        {
+            // Формат валидации ASP.NET: {"errors": {"Field": ["сообщение"]}, ...}
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("errors", out var errors))
+                {
+                    var messages = new List<string>();
+                    foreach (var field in errors.EnumerateObject())
+                        foreach (var msg in field.Value.EnumerateArray())
+                        {
+                            var text = msg.GetString();
+                            if (!string.IsNullOrEmpty(text)) messages.Add(text);
+                        }
+                    return ApiResponse<T>.Fail(string.Join("; ", messages));
+                }
+            }
+            catch { }
+            return ApiResponse<T>.Fail("Ошибка обработки ответа сервера");
+        }
     }
 }

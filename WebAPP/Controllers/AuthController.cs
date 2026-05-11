@@ -23,6 +23,13 @@ public class AuthController : Controller
     [HttpPost]
     public async Task<IActionResult> Login(LoginDto model)
     {
+        if (string.IsNullOrWhiteSpace(model.Login))
+            ModelState.AddModelError(nameof(model.Login), "Введите логин или email");
+        if (string.IsNullOrWhiteSpace(model.Password))
+            ModelState.AddModelError(nameof(model.Password), "Введите пароль");
+        if (!ModelState.IsValid)
+            return View(model);
+
         // Поле Login принимает как логин, так и email
         var response = await _api.PostAsync<LoginResponseDto>("api/auth/login", model);
 

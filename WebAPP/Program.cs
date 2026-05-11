@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 using WebAPP.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,6 +45,20 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
+
+// Если кука есть, но сессия (JWT) протухла после перезапуска сервера — разлогиниваем и отправляем на логин
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true &&
+        string.IsNullOrEmpty(context.Session.GetString("JWT")))
+    {
+        await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        context.Response.Redirect("/Auth/Login");
+        return;
+    }
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllerRoute(

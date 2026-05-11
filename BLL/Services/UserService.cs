@@ -118,6 +118,13 @@ namespace BLL.Services
             });
         }
 
+        public override async Task<ApiResponse<IEnumerable<UserDto>>> GetAllAsync()
+        {
+            var users = await _repository.GetAllWithIncludeAsync(u => u.Role);
+            var dtos = _mapper.Map<IEnumerable<UserDto>>(users);
+            return ApiResponse<IEnumerable<UserDto>>.Ok(dtos);
+        }
+
         public async Task<ApiResponse<IEnumerable<UserDto>>> GetUsersByRoleAsync(int roleId)
         {
             var users = await _repository.FindWithIncludeAsync(u => u.RoleId == roleId, u => u.Role);

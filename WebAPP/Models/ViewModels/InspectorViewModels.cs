@@ -14,6 +14,7 @@ public class InspectorDashboardViewModel
     public List<InspectionDto> MyInspections { get; set; } = new();
     public List<BlockDto> Blocks { get; set; } = new();
     public bool IsInspectionDay { get; set; }
+    public bool AlreadyInspectedToday { get; set; }
 
     public static Dictionary<int, string> Zones => new()
     {
