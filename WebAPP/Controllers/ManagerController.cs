@@ -230,13 +230,16 @@ public class ManagerController : Controller
         ViewData["Title"] = "Проживание";
 
         var residencesTask = _api.GetAsync<IEnumerable<ResidenceDto>>("api/residences");
-        var studentsTask   = _api.GetAsync<IEnumerable<UserDto>>("api/users/by-role/1");
+        var usersTask      = _api.GetAsync<IEnumerable<UserDto>>("api/users");
         var roomsTask      = _api.GetAsync<IEnumerable<RoomDto>>("api/rooms");
         var blocksTask     = _api.GetAsync<IEnumerable<BlockDto>>("api/blocks");
-        await Task.WhenAll(residencesTask, studentsTask, roomsTask, blocksTask);
+        await Task.WhenAll(residencesTask, usersTask, roomsTask, blocksTask);
 
         var residences = residencesTask.Result?.Data?.ToList() ?? new();
-        var students   = studentsTask.Result?.Data?.ToList()   ?? new();
+        // Проживать в общежитии могут студенты и проверяющие
+        var students   = usersTask.Result?.Data?
+                             .Where(u => u.RoleName == "Student" || u.RoleName == "Inspector")
+                             .ToList() ?? new();
         var rooms      = roomsTask.Result?.Data?.ToList()      ?? new();
 
         var residentIds       = residences.Where(r => r.IsCurrent).Select(r => r.UserId).ToHashSet();
