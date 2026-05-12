@@ -79,30 +79,33 @@ namespace WebAPI.Infrastructure
                               ivanov, petrov, sidorova, kozlov, novikova, sokolov);
             await db.SaveChangesAsync();
 
-            // ── 4. Блоки ──────────────────────────────────────────────────
-            var b41 = new Block { BlockNumber = "4-1", Floor = 4, BlockIndex = 1 };
-            var b42 = new Block { BlockNumber = "4-2", Floor = 4, BlockIndex = 2 };
-            var b43 = new Block { BlockNumber = "4-3", Floor = 4, BlockIndex = 3 };
-            var b51 = new Block { BlockNumber = "5-1", Floor = 5, BlockIndex = 1 };
-            var b52 = new Block { BlockNumber = "5-2", Floor = 5, BlockIndex = 2 };
-            var b53 = new Block { BlockNumber = "5-3", Floor = 5, BlockIndex = 3 };
+            // ── 4. Блоки ─────────────────────────────────────────────────
+            // Формат: FloorBlockIndex без тире (41 = 4 этаж, 1 блок)
+            var b41 = new Block { BlockNumber = "41", Floor = 4, BlockIndex = 1 };
+            var b42 = new Block { BlockNumber = "42", Floor = 4, BlockIndex = 2 };
+            var b43 = new Block { BlockNumber = "43", Floor = 4, BlockIndex = 3 };
+            var b51 = new Block { BlockNumber = "51", Floor = 5, BlockIndex = 1 };
+            var b52 = new Block { BlockNumber = "52", Floor = 5, BlockIndex = 2 };
+            var b53 = new Block { BlockNumber = "53", Floor = 5, BlockIndex = 3 };
 
             db.Blocks.AddRange(b41, b42, b43, b51, b52, b53);
             await db.SaveChangesAsync();
 
             // ── 5. Комнаты ────────────────────────────────────────────────
-            var r401 = new Room { RoomNumber = "401", BlockId = b41.Id, Capacity = 2, CurrentOccupancy = 2, IsActive = true };
-            var r402 = new Room { RoomNumber = "402", BlockId = b41.Id, Capacity = 2, CurrentOccupancy = 1, IsActive = true };
-            var r403 = new Room { RoomNumber = "403", BlockId = b42.Id, Capacity = 2, CurrentOccupancy = 2, IsActive = true };
-            var r404 = new Room { RoomNumber = "404", BlockId = b42.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
-            var r405 = new Room { RoomNumber = "405", BlockId = b43.Id, Capacity = 2, CurrentOccupancy = 1, IsActive = true };
-            var r406 = new Room { RoomNumber = "406", BlockId = b43.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
-            var r501 = new Room { RoomNumber = "501", BlockId = b51.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
-            var r502 = new Room { RoomNumber = "502", BlockId = b51.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
-            var r503 = new Room { RoomNumber = "503", BlockId = b52.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
-            var r504 = new Room { RoomNumber = "504", BlockId = b52.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
-            var r505 = new Room { RoomNumber = "505", BlockId = b53.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
-            var r506 = new Room { RoomNumber = "506", BlockId = b53.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            // В каждом блоке 2 комнаты: "1" и "2"
+            // Отображается как: блок 41, комната 1 → "41-1"
+            var r401 = new Room { RoomNumber = "1", BlockId = b41.Id, Capacity = 2, CurrentOccupancy = 2, IsActive = true };
+            var r402 = new Room { RoomNumber = "2", BlockId = b41.Id, Capacity = 2, CurrentOccupancy = 1, IsActive = true };
+            var r403 = new Room { RoomNumber = "1", BlockId = b42.Id, Capacity = 2, CurrentOccupancy = 2, IsActive = true };
+            var r404 = new Room { RoomNumber = "2", BlockId = b42.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            var r405 = new Room { RoomNumber = "1", BlockId = b43.Id, Capacity = 2, CurrentOccupancy = 1, IsActive = true };
+            var r406 = new Room { RoomNumber = "2", BlockId = b43.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            var r501 = new Room { RoomNumber = "1", BlockId = b51.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            var r502 = new Room { RoomNumber = "2", BlockId = b51.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            var r503 = new Room { RoomNumber = "1", BlockId = b52.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            var r504 = new Room { RoomNumber = "2", BlockId = b52.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            var r505 = new Room { RoomNumber = "1", BlockId = b53.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
+            var r506 = new Room { RoomNumber = "2", BlockId = b53.Id, Capacity = 2, CurrentOccupancy = 0, IsActive = true };
 
             db.Rooms.AddRange(r401, r402, r403, r404, r405, r406,
                               r501, r502, r503, r504, r505, r506);
@@ -139,14 +142,14 @@ namespace WebAPI.Infrastructure
                 new RepairRequest
                 {
                     Title = "Сломана ручка двери",
-                    Description = "В комнате 401 сломана ручка входной двери, дверь не закрывается",
+                    Description = "В комнате 1 блока 41 сломана ручка входной двери, дверь не закрывается",
                     BlockId = b41.Id, RoomId = r401.Id, RequestedById = ivanov.Id,
                     Status = "Pending", Priority = "Normal", CreatedAt = DateTime.Now.AddDays(-3)
                 },
                 new RepairRequest
                 {
                     Title = "Не работает розетка",
-                    Description = "В комнате 403 не работает розетка у окна",
+                    Description = "В комнате 1 блока 42 не работает розетка у окна",
                     BlockId = b42.Id, RoomId = r403.Id, RequestedById = kozlov.Id,
                     Status = "InProgress", Priority = "High", AssignedToId = mechanic1.Id,
                     CreatedAt = DateTime.Now.AddDays(-5)
@@ -154,7 +157,7 @@ namespace WebAPI.Infrastructure
                 new RepairRequest
                 {
                     Title = "Засор в душевой",
-                    Description = "В блоке 4-2 засор в сливе душевой кабины",
+                    Description = "В блоке 42 засор в сливе душевой кабины",
                     BlockId = b42.Id, RoomId = null, RequestedById = novikova.Id,
                     Status = "Completed", Priority = "Normal", AssignedToId = mechanic1.Id,
                     CreatedAt = DateTime.Now.AddDays(-10), CompletedAt = DateTime.Now.AddDays(-7)
@@ -162,7 +165,7 @@ namespace WebAPI.Infrastructure
                 new RepairRequest
                 {
                     Title = "Мигает лампочка",
-                    Description = "В коридоре блока 4-3 постоянно мигает освещение",
+                    Description = "В коридоре блока 43 постоянно мигает освещение",
                     BlockId = b43.Id, RoomId = null, RequestedById = sokolov.Id,
                     Status = "Pending", Priority = "Low", CreatedAt = DateTime.Now.AddDays(-1)
                 }

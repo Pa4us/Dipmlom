@@ -90,13 +90,33 @@ public static class ExcelImportService
                 var row = ws.Row(r);
                 if (IsRowEmpty(row)) continue;
 
+                var blockRaw  = GetCell(row, map, "блок");
+                var roomRaw   = map.ContainsKey("комната") ? GetCell(row, map, "комната") : null;
+
+                // Поддержка формата "44-1" в колонке Блок:
+                // если значение содержит "-", то часть до "-" = номер блока,
+                // часть после "-" = номер комнаты (если колонка Комната не задана отдельно)
+                string blockNumber;
+                string? roomNumber;
+                var dashIdx = blockRaw.IndexOf('-');
+                if (dashIdx > 0 && string.IsNullOrWhiteSpace(roomRaw))
+                {
+                    blockNumber = blockRaw[..dashIdx].Trim();
+                    roomNumber  = blockRaw[(dashIdx + 1)..].Trim();
+                }
+                else
+                {
+                    blockNumber = blockRaw;
+                    roomNumber  = string.IsNullOrWhiteSpace(roomRaw) ? null : roomRaw;
+                }
+
                 rows.Add(new ImportResidenceRowDto
                 {
-                    RowNumber  = r,
-                    Username   = GetCell(row, map, "логин"),
-                    FullName   = map.ContainsKey("фио")     ? GetCell(row, map, "фио")     : null,
-                    BlockNumber = GetCell(row, map, "блок"),
-                    RoomNumber = map.ContainsKey("комната") ? GetCell(row, map, "комната") : null,
+                    RowNumber   = r,
+                    Username    = GetCell(row, map, "логин"),
+                    FullName    = map.ContainsKey("фио") ? GetCell(row, map, "фио") : null,
+                    BlockNumber = blockNumber,
+                    RoomNumber  = roomNumber,
                 });
             }
 
