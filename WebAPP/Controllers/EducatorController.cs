@@ -43,6 +43,16 @@ public class EducatorController : Controller
         return View(vm);
     }
 
+    // ─── Пересчёт статистики ─────────────────────────────────────────────────
+
+    [HttpPost]
+    public async Task<IActionResult> RecalculateStats()
+    {
+        await _api.PostAsync<object>("api/statistics/recalculate-all", new { });
+        TempData["Success"] = "Статистика пересчитана";
+        return RedirectToAction("Dashboard");
+    }
+
     // ─── Проверки ─────────────────────────────────────────────────────────────
 
     public async Task<IActionResult> Inspections(string? dateFrom, string? dateTo, int? blockId, int? floor)
@@ -89,7 +99,7 @@ public class EducatorController : Controller
         ViewData["Title"] = "Баллы студентов";
 
         // Студентов загружаем первыми — ключевые данные страницы
-        var studentsResp = await _api.GetAsync<IEnumerable<UserDto>>("api/users/by-role/1");
+        var studentsResp = await _api.GetAsync<IEnumerable<UserDto>>("api/users/by-role-name/Student");
         var students = studentsResp?.Data?.ToList() ?? new();
 
         var ratingsTask = _api.GetAsync<IEnumerable<StudentRatingDto>>("api/studentpoints/ratings");
@@ -175,7 +185,7 @@ public class EducatorController : Controller
         ViewData["Title"] = "Мероприятия";
 
         // Студентов загружаем первыми
-        var studentsResp = await _api.GetAsync<IEnumerable<UserDto>>("api/users/by-role/1");
+        var studentsResp = await _api.GetAsync<IEnumerable<UserDto>>("api/users/by-role-name/Student");
         var students = studentsResp?.Data?.ToList() ?? new();
 
         var eventsResp = await _api.GetAsync<IEnumerable<EventDto>>("api/events");
@@ -256,7 +266,7 @@ public class EducatorController : Controller
     {
         ViewData["Title"] = "Студенты";
 
-        var studentsTask  = _api.GetAsync<IEnumerable<UserDto>>("api/users/by-role/1");
+        var studentsTask  = _api.GetAsync<IEnumerable<UserDto>>("api/users/by-role-name/Student");
         var residencesTask = _api.GetAsync<IEnumerable<ResidenceDto>>("api/residences");
         var ratingsTask   = _api.GetAsync<IEnumerable<StudentRatingDto>>("api/studentpoints/ratings");
         await Task.WhenAll(studentsTask, residencesTask, ratingsTask);

@@ -1,3 +1,4 @@
+using BLL.Interfaces;
 using DAL.DBContext;
 using DAL.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -136,6 +137,20 @@ namespace WebAPI.Infrastructure
                 new Inspection { BlockId = b42.Id, ZoneId = zoneRoom.Id,     InspectorId = inspector1.Id, InspectionDate = today,            Score = 8, Comment = "Хорошо" }
             );
             await db.SaveChangesAsync();
+
+            // ── 7b. Пересчёт недельной статистики ─────────────────────────
+            // Нужно вызвать RecalculateWeeklyStatsAsync для каждой уникальной
+            // пары (блок, дата), чтобы дашборд не показывал «нет данных».
+            var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService>();
+            var recalcPairs = new[] {
+                (b41.Id, today.AddDays(-7)),
+                (b42.Id, today.AddDays(-7)),
+                (b43.Id, today.AddDays(-7)),
+                (b41.Id, today),
+                (b42.Id, today),
+            };
+            foreach (var (blockId, date) in recalcPairs)
+                await statisticsService.RecalculateWeeklyStatsAsync(blockId, date);
 
             // ── 8. Заявки на ремонт ───────────────────────────────────────
             db.RepairRequests.AddRange(

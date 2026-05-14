@@ -66,7 +66,13 @@
                 }
                 @if (!Model.BestBlocks.Any())
                 {
-                    <li class="list-group-item text-muted small">Нет данных за текущую неделю</li>
+                    <li class="list-group-item text-muted small">
+                        Нет данных за текущую неделю.
+                        <form method="post" asp-action="RecalculateStats" class="d-inline ms-1">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-link btn-sm p-0 text-primary">Пересчитать</button>
+                        </form>
+                    </li>
                 }
             </ul>
         </div>
@@ -161,7 +167,9 @@
     } else {
         document.getElementById('blocksChart').insertAdjacentHTML('beforebegin',
             '<p class="text-center text-muted py-4">Нет данных за текущую неделю. ' +
-            '<a href="/api/statistics/recalculate-all" class="link-primary">Пересчитать</a></p>');
+            '<form method="post" action="/Educator/RecalculateStats" style="display:inline">' +
+            '<input type="hidden" name="__RequestVerificationToken" value="' + document.querySelector('[name=__RequestVerificationToken]')?.value + '">' +
+            '<button type="submit" class="btn btn-link p-0 text-primary">Пересчитать</button></form></p>');
         document.getElementById('blocksChart').style.display = 'none';
     }
 </script>

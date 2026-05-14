@@ -25,7 +25,7 @@
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Файл Excel <span class="text-danger">*</span></label>
                     <input type="file" name="file" accept=".xlsx" class="form-control" required />
-                    <div class="form-text">Обязательные колонки: <strong>Логин, Блок</strong>. Необязательные: <strong>ФИО, Комната</strong></div>
+                    <div class="form-text">Обязательные колонки: <strong>Логин, Блок</strong>. Необязательная: <strong>ФИО</strong>. Блок указывается в формате <strong>41-1</strong> (номер блока — номер комнаты)</div>
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
@@ -43,21 +43,20 @@
             <div class="table-responsive">
                 <table class="table table-sm table-bordered mb-2">
                     <thead class="table-light">
-                        <tr><th>Логин</th><th>ФИО</th><th>Блок</th><th>Комната</th></tr>
+                        <tr><th>Логин</th><th>ФИО</th><th>Блок</th></tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>ivanov</td>
                             <td class="text-muted">Иванов Иван Иванович</td>
-                            <td>44-1</td>
-                            <td class="text-muted">101</td>
+                            <td>41-1</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
             <ul class="small text-muted mb-0">
                 <li>Аккаунты студентов должны быть уже созданы (сначала импортирует Заведующая)</li>
-                <li>Если <strong>Комната</strong> не указана — студент заселяется в первую свободную комнату блока</li>
+                <li>Колонка <strong>Блок</strong> обязательно должна содержать номер комнаты через тире: <strong>41-1</strong> или <strong>41-2</strong> — формат без комнаты (например, просто <strong>41</strong>) не допускается</li>
                 <li>Студенты, уже имеющие активное заселение, будут помечены как ошибка</li>
             </ul>
         </div>

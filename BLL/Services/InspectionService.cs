@@ -33,7 +33,8 @@ namespace BLL.Services
         {
             i => i.Block,
             i => i.Zone,
-            i => i.Inspector
+            i => i.Inspector,
+            i => i.Room!   // nullable — Include всё равно нужен для маппинга RoomNumber
         };
 
         public override async Task<ApiResponse<IEnumerable<InspectionDto>>> GetAllAsync()
@@ -59,17 +60,27 @@ namespace BLL.Services
             if (existing.Any())
                 return ApiResponse<InspectionDto>.Fail("Вы уже проводили проверку сегодня. Разрешена только одна проверка в день.");
 
-            var result = await base.CreateAsync(createDto);
-
-            // После сохранения проверки — автоматически пересчитываем статистику
-            if (result.Success)
+            try
             {
+                var entity = _mapper.Map<Inspection>(createDto);
+                await _repository.AddAsync(entity);
+                await _repository.SaveChangesAsync();
+
+                // Перезагружаем сущность с навигационными свойствами для маппинга
+                var saved = await _repository.GetByIdWithIncludeAsync(entity.Id, _includes);
+                var dto = _mapper.Map<InspectionDto>(saved!);
+
+                // Пересчитываем статистику блока
                 await _statisticsService.RecalculateWeeklyStatsAsync(
                     createDto.BlockId,
                     createDto.InspectionDate);
-            }
 
-            return result;
+                return ApiResponse<InspectionDto>.Ok(dto, "Проверка успешно создана");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<InspectionDto>.Fail($"Ошибка при создании: {ex.Message}");
+            }
         }
 
         public async Task<ApiResponse<IEnumerable<InspectionDto>>> GetInspectionsByBlockAsync(int blockId)

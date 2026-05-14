@@ -381,7 +381,7 @@ public static class ExcelExportService
         var ws = wb.AddWorksheet("Заселение");
 
         ws.Cell(1, 1).Value = "Шаблон импорта заселения — заполните начиная со строки 3";
-        ws.Range(1, 1, 1, 4).Merge();
+        ws.Range(1, 1, 1, 3).Merge();
         ws.Row(1).Style.Font.Italic = true;
         ws.Row(1).Style.Font.FontColor = XLColor.Gray;
 
@@ -389,18 +389,16 @@ public static class ExcelExportService
         hdr.Cell(1).Value = "Логин";
         hdr.Cell(2).Value = "ФИО";
         hdr.Cell(3).Value = "Блок";
-        hdr.Cell(4).Value = "Комната";
-        StyleHeader(hdr, 4);
+        StyleHeader(hdr, 3);
 
         // Пример
         ws.Cell(3, 1).Value = "ivanov";
         ws.Cell(3, 2).Value = "Иванов Иван Иванович";
-        ws.Cell(3, 3).Value = "44-1";
-        ws.Cell(3, 4).Value = "";
+        ws.Cell(3, 3).Value = "41-1";
         ws.Row(3).Style.Font.FontColor = XLColor.LightGray;
 
-        ws.Cell(5, 1).Value = "Колонка «Комната» необязательна — если не указана, студент будет заселён в первую свободную комнату блока";
-        ws.Range(5, 1, 5, 4).Merge();
+        ws.Cell(5, 1).Value = "Колонка «Блок» обязательно указывается в формате «41-1» (номер блока — номер комнаты). Просто «41» без комнаты не допускается.";
+        ws.Range(5, 1, 5, 3).Merge();
         ws.Row(5).Style.Font.Italic = true;
         ws.Row(5).Style.Font.FontColor = XLColor.Gray;
 

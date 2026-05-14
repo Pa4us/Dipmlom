@@ -32,12 +32,21 @@ namespace WebAPI.Controllers
             return HandleResponseNotFound(response);
         }
 
-        /// <summary>Получить пользователей по роли</summary>
+        /// <summary>Получить пользователей по роли (по ID)</summary>
         [HttpGet("by-role/{roleId:int}")]
         [Authorize(Roles = "Educator,Inspector,Manager")]
         public async Task<IActionResult> GetByRole(int roleId)
         {
             var response = await _userService.GetUsersByRoleAsync(roleId);
+            return HandleResponse(response);
+        }
+
+        /// <summary>Получить пользователей по имени роли (Student, Inspector, Mechanic и т.д.)</summary>
+        [HttpGet("by-role-name/{roleName}")]
+        [Authorize(Roles = "Educator,Inspector,Manager")]
+        public async Task<IActionResult> GetByRoleName(string roleName)
+        {
+            var response = await _userService.GetUsersByRoleNameAsync(roleName);
             return HandleResponse(response);
         }
 

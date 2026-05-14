@@ -118,6 +118,15 @@ namespace BLL.Services
             });
         }
 
+        public override async Task<ApiResponse<UserDto>> GetByIdAsync(int id)
+        {
+            var users = await _repository.FindWithIncludeAsync(u => u.Id == id, u => u.Role);
+            var user = users.FirstOrDefault();
+            if (user == null)
+                return ApiResponse<UserDto>.Fail($"Пользователь с ID {id} не найден");
+            return ApiResponse<UserDto>.Ok(_mapper.Map<UserDto>(user));
+        }
+
         public override async Task<ApiResponse<IEnumerable<UserDto>>> GetAllAsync()
         {
             var users = await _repository.GetAllWithIncludeAsync(u => u.Role);
@@ -128,6 +137,14 @@ namespace BLL.Services
         public async Task<ApiResponse<IEnumerable<UserDto>>> GetUsersByRoleAsync(int roleId)
         {
             var users = await _repository.FindWithIncludeAsync(u => u.RoleId == roleId, u => u.Role);
+            var dtos = _mapper.Map<IEnumerable<UserDto>>(users);
+            return ApiResponse<IEnumerable<UserDto>>.Ok(dtos);
+        }
+
+        public async Task<ApiResponse<IEnumerable<UserDto>>> GetUsersByRoleNameAsync(string roleName)
+        {
+            var users = await _repository.FindWithIncludeAsync(
+                u => u.Role.Name == roleName, u => u.Role);
             var dtos = _mapper.Map<IEnumerable<UserDto>>(users);
             return ApiResponse<IEnumerable<UserDto>>.Ok(dtos);
         }

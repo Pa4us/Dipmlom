@@ -1,4 +1,6 @@
 using BLL.Interfaces;
+using DAL.Entities;
+using DAL.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SharedModel.DTOs;
@@ -10,10 +12,21 @@ namespace WebAPI.Controllers
     public class InspectionsController : BaseApiController
     {
         private readonly IInspectionService _inspectionService;
+        private readonly IRepository<InspectionZone> _zoneRepo;
 
-        public InspectionsController(IInspectionService inspectionService)
+        public InspectionsController(IInspectionService inspectionService, IRepository<InspectionZone> zoneRepo)
         {
             _inspectionService = inspectionService;
+            _zoneRepo = zoneRepo;
+        }
+
+        /// <summary>Получить список зон проверки</summary>
+        [HttpGet("zones")]
+        public async Task<IActionResult> GetZones()
+        {
+            var zones = await _zoneRepo.GetAllAsync();
+            var result = zones.Select(z => new { z.Id, z.Name, displayName = z.DisplayName });
+            return Ok(new { success = true, data = result });
         }
 
         /// <summary>Получить все проверки</summary>
