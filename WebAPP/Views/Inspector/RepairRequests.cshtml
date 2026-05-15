@@ -103,7 +103,6 @@
             else
             {
                 <form method="post" asp-action="CreateRepairRequest">
-                    <!-- Блок и комната подставляются автоматически -->
                     <input type="hidden" name="BlockId" value="@Model.Residence.BlockId" />
                     @if (Model.Residence.RoomId > 0)
                     {

@@ -74,6 +74,12 @@
                                     title="Сбросить пароль">
                                 <i class="bi bi-key"></i>
                             </button>
+                            <!-- Кнопка удаления -->
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteModal-@u.Id"
+                                    title="Удалить аккаунт">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -155,6 +161,36 @@
                                     <button type="submit" class="btn btn-warning btn-sm">Сбросить</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Модалка подтверждения удаления -->
+                <div class="modal fade" id="deleteModal-@u.Id" tabindex="-1">
+                    <div class="modal-dialog modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title text-danger">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>Удаление аккаунта
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-1">Вы уверены, что хотите удалить аккаунт:</p>
+                                <p class="fw-semibold mb-0">@u.FullName</p>
+                                <p class="small text-muted mb-0"><code>@u.Username</code></p>
+                                <p class="small text-danger mt-2 mb-0">Это действие необратимо.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                                <form method="post" asp-action="DeleteUser" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@u.Id" />
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="bi bi-trash me-1"></i>Удалить
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

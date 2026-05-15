@@ -7,29 +7,44 @@ using SharedModel.DTOs.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
 
 namespace BLL.Services
 {
     public class UserService: BaseService<User, UserDto, CreateUserDto, UpdateUserDto>, IUserService
     {
-        private readonly IRepository<Residence> _residenceRepository;
-        private readonly IRepository<Role>      _roleRepository;
+        private readonly IRepository<Residence>        _residenceRepository;
+        private readonly IRepository<Role>             _roleRepository;
+        private readonly IRepository<StudentPoint>     _studentPointRepository;
+        private readonly IRepository<Inspection>       _inspectionRepository;
+        private readonly IRepository<RepairRequest>    _repairRequestRepository;
+        private readonly IRepository<RepairComment>    _repairCommentRepository;
+        private readonly IRepository<EventParticipant> _eventParticipantRepository;
         private readonly IJwtService _jwtService;
 
         public UserService(
-            IRepository<User>      repository,
-            IRepository<Residence> residenceRepository,
-            IRepository<Role>      roleRepository,
-            IMapper                mapper,
-            IJwtService            jwtService)
+            IRepository<User>             repository,
+            IRepository<Residence>        residenceRepository,
+            IRepository<Role>             roleRepository,
+            IRepository<StudentPoint>     studentPointRepository,
+            IRepository<Inspection>       inspectionRepository,
+            IRepository<RepairRequest>    repairRequestRepository,
+            IRepository<RepairComment>    repairCommentRepository,
+            IRepository<EventParticipant> eventParticipantRepository,
+            IMapper                       mapper,
+            IJwtService                   jwtService)
             : base(repository, mapper)
         {
-            _residenceRepository = residenceRepository;
-            _roleRepository      = roleRepository;
-            _jwtService          = jwtService;
+            _residenceRepository        = residenceRepository;
+            _roleRepository             = roleRepository;
+            _studentPointRepository     = studentPointRepository;
+            _inspectionRepository       = inspectionRepository;
+            _repairRequestRepository    = repairRequestRepository;
+            _repairCommentRepository    = repairCommentRepository;
+            _eventParticipantRepository = eventParticipantRepository;
+            _jwtService                 = jwtService;
         }
 
         private string HashPassword(string password)
@@ -38,6 +53,45 @@ namespace BLL.Services
             {
                 var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
                 return Convert.ToBase64String(hashedBytes);
+            }
+        }
+
+        public override async Task<ApiResponse<bool>> DeleteAsync(int id)
+        {
+            try
+            {
+                var user = await _repository.GetByIdAsync(id);
+                if (user == null)
+                    return ApiResponse<bool>.Fail("Пользователь не найден");
+
+                // Удаляем все зависимые записи перед удалением пользователя
+                var residences       = await _residenceRepository.FindAsync(r => r.UserId == id);
+                var studentPoints    = await _studentPointRepository.FindAsync(p => p.UserId == id);
+                var inspections      = await _inspectionRepository.FindAsync(i => i.InspectorId == id);
+                var repairRequests   = await _repairRequestRepository.FindAsync(r => r.RequestedById == id);
+                var repairComments   = await _repairCommentRepository.FindAsync(c => c.UserId == id);
+                var eventParticipants= await _eventParticipantRepository.FindAsync(e => e.UserId == id);
+
+                foreach (var r in residences)        _residenceRepository.Delete(r);
+                foreach (var p in studentPoints)     _studentPointRepository.Delete(p);
+                foreach (var i in inspections)       _inspectionRepository.Delete(i);
+                foreach (var c in repairComments)    _repairCommentRepository.Delete(c);
+                foreach (var e in eventParticipants) _eventParticipantRepository.Delete(e);
+
+                // Заявки на ремонт — обнуляем RequestedById (если не хотим их удалять)
+                foreach (var req in repairRequests)
+                {
+                    _repairRequestRepository.Delete(req);
+                }
+
+                _repository.Delete(user);
+                await _repository.SaveChangesAsync();
+
+                return ApiResponse<bool>.Ok(true, "Аккаунт успешно удалён");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<bool>.Fail($"Ошибка при удалении: {ex.Message}");
             }
         }
 

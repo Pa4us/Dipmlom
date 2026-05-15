@@ -103,6 +103,15 @@ public class ManagerController : Controller
         return RedirectToAction("Users");
     }
 
+    [HttpPost]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var result = await _api.DeleteAsync<bool>($"api/users/{id}");
+        TempData[result?.Success == true ? "Success" : "Error"] =
+            result?.Success == true ? "Аккаунт удалён" : result?.Message ?? "Ошибка при удалении";
+        return RedirectToAction("Users");
+    }
+
     // ─── Заявки на ремонт ────────────────────────────────────────────────────
 
     public async Task<IActionResult> RepairRequests(string? status)

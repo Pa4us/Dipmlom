@@ -28,7 +28,6 @@ public class InspectorDashboardViewModel
 public class InspectorRepairRequestsViewModel
 {
     public List<RepairRequestDto> Requests { get; set; } = new();
-    /// <summary>Текущее проживание инспектора — блок/комната подставляются автоматически</summary>
     public ResidenceDto? Residence { get; set; }
 }
 
