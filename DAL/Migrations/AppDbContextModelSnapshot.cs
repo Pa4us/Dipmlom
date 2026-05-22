@@ -91,6 +91,89 @@ namespace DAL.Migrations
                     b.ToTable("BlockWeeklyScores");
                 });
 
+            modelBuilder.Entity("DAL.Entities.CheckInRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("ManagerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerId");
+
+                    b.ToTable("CheckInRequests");
+                });
+
+            modelBuilder.Entity("DAL.Entities.CheckInRequestItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BlockNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("CheckInRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Faculty")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("GeneratedPassword")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Group")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckInRequestId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CheckInRequestItems");
+                });
+
             modelBuilder.Entity("DAL.Entities.DormitoryWeeklyStat", b =>
                 {
                     b.Property<int>("Id")
@@ -206,6 +289,68 @@ namespace DAL.Migrations
                     b.ToTable("EventParticipants");
                 });
 
+            modelBuilder.Entity("DAL.Entities.EvictionRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("EducatorId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EducatorId");
+
+                    b.HasIndex("ManagerId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EvictionRequests");
+                });
+
+            modelBuilder.Entity("DAL.Entities.Faculty", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "Name" }, "UQ_Faculties_Name")
+                        .IsUnique();
+
+                    b.ToTable("Faculties");
+                });
+
             modelBuilder.Entity("DAL.Entities.FloorWeeklyStat", b =>
                 {
                     b.Property<int>("Id")
@@ -243,6 +388,29 @@ namespace DAL.Migrations
                         .IsUnique();
 
                     b.ToTable("FloorWeeklyStats");
+                });
+
+            modelBuilder.Entity("DAL.Entities.Group", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("FacultyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FacultyId");
+
+                    b.ToTable("Groups");
                 });
 
             modelBuilder.Entity("DAL.Entities.Inspection", b =>
@@ -604,10 +772,16 @@ namespace DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("FacultyId")
+                        .HasColumnType("int");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("GroupId")
+                        .HasColumnType("int");
 
                     b.Property<bool?>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -634,6 +808,10 @@ namespace DAL.Migrations
                     b.HasKey("Id")
                         .HasName("PK__Users__3214EC07C26F86B3");
 
+                    b.HasIndex(new[] { "FacultyId" }, "IX_Users_FacultyId");
+
+                    b.HasIndex(new[] { "GroupId" }, "IX_Users_GroupId");
+
                     b.HasIndex(new[] { "RoleId" }, "IX_Users_RoleId");
 
                     b.HasIndex(new[] { "Username" }, "UQ__Users__536C85E46ED61669")
@@ -654,6 +832,34 @@ namespace DAL.Migrations
                         .HasConstraintName("FK__BlockWeek__Block__7E37BEF6");
 
                     b.Navigation("Block");
+                });
+
+            modelBuilder.Entity("DAL.Entities.CheckInRequest", b =>
+                {
+                    b.HasOne("DAL.Entities.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .IsRequired();
+
+                    b.Navigation("Manager");
+                });
+
+            modelBuilder.Entity("DAL.Entities.CheckInRequestItem", b =>
+                {
+                    b.HasOne("DAL.Entities.CheckInRequest", "Request")
+                        .WithMany("Items")
+                        .HasForeignKey("CheckInRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DAL.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Request");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DAL.Entities.Event", b =>
@@ -685,6 +891,43 @@ namespace DAL.Migrations
                     b.Navigation("Event");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DAL.Entities.EvictionRequest", b =>
+                {
+                    b.HasOne("DAL.Entities.User", "Educator")
+                        .WithMany()
+                        .HasForeignKey("EducatorId")
+                        .IsRequired()
+                        .HasConstraintName("FK_EvictionRequests_Educator");
+
+                    b.HasOne("DAL.Entities.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK_EvictionRequests_Manager");
+
+                    b.HasOne("DAL.Entities.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .IsRequired()
+                        .HasConstraintName("FK_EvictionRequests_Student");
+
+                    b.Navigation("Educator");
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("DAL.Entities.Group", b =>
+                {
+                    b.HasOne("DAL.Entities.Faculty", "Faculty")
+                        .WithMany("Groups")
+                        .HasForeignKey("FacultyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Faculty");
                 });
 
             modelBuilder.Entity("DAL.Entities.Inspection", b =>
@@ -826,11 +1069,25 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.Entities.User", b =>
                 {
+                    b.HasOne("DAL.Entities.Faculty", "Faculty")
+                        .WithMany("Users")
+                        .HasForeignKey("FacultyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DAL.Entities.Group", "Group")
+                        .WithMany("Users")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DAL.Entities.Role", "Role")
                         .WithMany("Users")
                         .HasForeignKey("RoleId")
                         .IsRequired()
                         .HasConstraintName("FK__Users__RoleId__3E52440B");
+
+                    b.Navigation("Faculty");
+
+                    b.Navigation("Group");
 
                     b.Navigation("Role");
                 });
@@ -848,9 +1105,26 @@ namespace DAL.Migrations
                     b.Navigation("Rooms");
                 });
 
+            modelBuilder.Entity("DAL.Entities.CheckInRequest", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("DAL.Entities.Event", b =>
                 {
                     b.Navigation("EventParticipants");
+                });
+
+            modelBuilder.Entity("DAL.Entities.Faculty", b =>
+                {
+                    b.Navigation("Groups");
+
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("DAL.Entities.Group", b =>
+                {
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("DAL.Entities.InspectionZone", b =>

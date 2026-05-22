@@ -90,29 +90,39 @@
                     <h6 class="fw-bold mb-0">
                         <i class="bi bi-clipboard-check me-2 text-primary"></i>Провести проверку
                     </h6>
-                    @if (Model.AlreadyInspectedToday)
-                    {
-                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Выполнено сегодня</span>
-                    }
-                    else if (Model.IsInspectionDay)
-                    {
-                        <span class="badge bg-success"><i class="bi bi-unlock me-1"></i>Сегодня разрешено</span>
-                    }
-                    else
+                    @if (!Model.IsInspectionDay)
                     {
                         <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Не разрешено сегодня</span>
                     }
+                    else if (!Model.AvailableBlocks.Any())
+                    {
+                        <span class="badge bg-success"><i class="bi bi-check-all me-1"></i>Все блоки проверены</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success"><i class="bi bi-unlock me-1"></i>Сегодня разрешено</span>
+                    }
                 </div>
 
-                @if (Model.AlreadyInspectedToday)
+                @if (!Model.IsInspectionDay)
+                {
+                    <div class="text-center py-3 text-muted">
+                        <i class="bi bi-calendar-x" style="font-size:2rem"></i>
+                        <p class="mt-2 mb-0 small">
+                            Форма проверки доступна только в дни, установленные воспитателем.
+                            Обратитесь к воспитателю за расписанием.
+                        </p>
+                    </div>
+                }
+                else if (!Model.AvailableBlocks.Any())
                 {
                     <div class="text-center py-3">
                         <i class="bi bi-patch-check-fill text-success" style="font-size:2.5rem"></i>
-                        <p class="mt-2 mb-0 fw-semibold text-success">Проверка на сегодня уже проведена</p>
-                        <p class="small text-muted mt-1 mb-0">Разрешена только одна проверка в день. Следующая будет доступна завтра.</p>
+                        <p class="mt-2 mb-0 fw-semibold text-success">Все блоки на сегодня проверены</p>
+                        <p class="small text-muted mt-1 mb-0">Каждый блок можно проверить только один раз в день.</p>
                     </div>
                 }
-                else if (Model.IsInspectionDay)
+                else
                 {
                     <form method="post" asp-action="CreateInspection">
                         <div class="row g-2 mb-2">
@@ -120,7 +130,7 @@
                                 <label class="form-label form-label-sm">Блок <span class="text-danger">*</span></label>
                                 <select name="BlockId" class="form-select form-select-sm ts-select ts-sm" required>
                                     <option value="">— Выберите блок —</option>
-                                    @foreach (var b in Model.Blocks)
+                                    @foreach (var b in Model.AvailableBlocks)
                                     {
                                         <option value="@b.Id">Блок @b.BlockNumber — эт. @b.Floor</option>
                                     }
@@ -162,18 +172,39 @@
                         </button>
                     </form>
                 }
-                else
-                {
-                    <div class="text-center py-3 text-muted">
-                        <i class="bi bi-calendar-x" style="font-size:2rem"></i>
-                        <p class="mt-2 mb-0 small">
-                            Форма проверки доступна только в дни, установленные воспитателем.
-                            Обратитесь к воспитателю за расписанием.
-                        </p>
-                    </div>
-                }
             </div>
         </div>
+
+        <!-- Уже проверенные сегодня блоки -->
+        @if (Model.IsInspectionDay && Model.TodayInspections.Any())
+        {
+            <div class="table-card mb-4">
+                <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-check2-square me-2 text-success"></i>Проверено сегодня
+                    </span>
+                    <span class="badge bg-success">@Model.TodayInspections.Count</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 small">
+                        <thead>
+                            <tr><th>Блок</th><th>Зона</th><th>Оценка</th><th>Инспектор</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var i in Model.TodayInspections)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary">@i.BlockNumber</span></td>
+                                    <td>@i.ZoneName</td>
+                                    <td><span class="score-badge @ScoreClass(i.Score)">@i.Score / 10</span></td>
+                                    <td class="text-muted">@i.InspectorName</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
 
         <!-- Мои последние проверки -->
         @if (Model.MyInspections.Any())

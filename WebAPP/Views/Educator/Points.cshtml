@@ -1,15 +1,16 @@
 @model PointsViewModel
 @{ ViewData["Title"] = "Баллы студентов"; }
 
+<!-- ── Рейтинг (слева) + Все действия (справа) ──────────────────────────── -->
 <div class="row g-4">
 
-    <!-- Рейтинг -->
+    <!-- Левая колонка: только рейтинг -->
     <div class="col-lg-7">
-        <div class="table-card mb-4">
+        <div class="table-card">
             <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-trophy-fill text-warning me-2"></i>Рейтинг студентов</span>
-                <a asp-action="ExportStudentRatings" class="btn btn-sm btn-success">
-                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                <a asp-action="ExportStudentRatingsPdf" class="btn btn-sm btn-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
                 </a>
             </div>
             <table class="table table-hover mb-0">
@@ -51,63 +52,9 @@
                 </tbody>
             </table>
         </div>
-
-        <!-- Прошедшие мероприятия -->
-        @if (Model.PastEvents.Any())
-        {
-            <div class="table-card">
-                <div class="p-3 border-bottom fw-semibold">
-                    <i class="bi bi-calendar-check me-2 text-info"></i>Начислить баллы за мероприятия
-                </div>
-                @foreach (var ev in Model.PastEvents)
-                {
-                    var evParticipants = Model.EventParticipants.GetValueOrDefault(ev.Id) ?? new();
-                    <div class="p-3 border-bottom">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <div class="fw-semibold">@ev.Title</div>
-                                <div class="small text-muted">
-                                    <i class="bi bi-calendar3 me-1"></i>@ev.EventDate.ToString("dd.MM.yyyy")
-                                    <span class="ms-2"><i class="bi bi-people me-1"></i>@evParticipants.Count уч.</span>
-                                    <span class="ms-2 text-warning"><i class="bi bi-star me-1"></i>@ev.PointsAwarded б.</span>
-                                </div>
-                                @if (evParticipants.Any())
-                                {
-                                    <div class="d-flex flex-wrap gap-1 mt-1">
-                                        @foreach (var p in evParticipants)
-                                        {
-                                            <span class="badge bg-light text-dark border" style="font-size:.75rem">@p.FullName</span>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                            @if (evParticipants.Any())
-                            {
-                                <form method="post" asp-action="AwardAllEventParticipants" class="d-flex gap-2 align-items-start ms-3">
-                                    <input type="hidden" name="eventId" value="@ev.Id" />
-                                    <input type="hidden" name="reason" value="Участие в мероприятии: @ev.Title" />
-                                    <div class="text-center">
-                                        <input type="number" name="points" value="@ev.PointsAwarded" min="1" max="100"
-                                               class="form-control form-control-sm mb-1" style="width:70px" />
-                                        <button type="submit" class="btn btn-sm btn-success text-nowrap"
-                                                onclick="return confirm('Начислить @ev.PointsAwarded баллов всем @evParticipants.Count участникам?')">
-                                            <i class="bi bi-gift me-1"></i>Всем
-                                        </button>
-                                    </div>
-                                </form>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary ms-3">Нет участников</span>
-                            }
-                        </div>
-                    </div>
-                }
-            </div>
-        }
     </div>
 
-    <!-- Формы начисления/взыскания -->
+    <!-- Правая колонка: все действия -->
     <div class="col-lg-5">
 
         <!-- Начислить баллы -->
@@ -142,7 +89,7 @@
         </div>
 
         <!-- Взыскать баллы -->
-        <div class="form-card">
+        <div class="form-card mb-4">
             <h6 class="fw-bold text-danger mb-3">
                 <i class="bi bi-dash-circle-fill me-2"></i>Взыскать баллы
             </h6>
@@ -171,5 +118,180 @@
                 </button>
             </form>
         </div>
+
+        <!-- Прошедшие мероприятия -->
+        @if (Model.PastEvents.Any())
+        {
+            <div class="table-card mb-4">
+                <div class="p-3 border-bottom fw-semibold">
+                    <i class="bi bi-calendar-check me-2 text-info"></i>Начислить за мероприятия
+                </div>
+                @foreach (var ev in Model.PastEvents)
+                {
+                    var evParticipants = Model.EventParticipants.GetValueOrDefault(ev.Id) ?? new();
+                    <div class="p-3 border-bottom">
+                        <div class="fw-semibold small">@ev.Title</div>
+                        <div class="small text-muted mb-2">
+                            <i class="bi bi-calendar3 me-1"></i>@ev.EventDate.ToString("dd.MM.yyyy")
+                            <span class="ms-2"><i class="bi bi-people me-1"></i>@evParticipants.Count уч.</span>
+                            <span class="ms-2 text-warning"><i class="bi bi-star me-1"></i>@ev.PointsAwarded б.</span>
+                        </div>
+                        @if (evParticipants.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                @foreach (var p in evParticipants)
+                                {
+                                    <span class="badge bg-light text-dark border" style="font-size:.72rem">@p.FullName</span>
+                                }
+                            </div>
+                            <form method="post" asp-action="AwardAllEventParticipants" class="d-flex gap-2 align-items-center">
+                                <input type="hidden" name="eventId" value="@ev.Id" />
+                                <input type="hidden" name="reason" value="Участие в мероприятии: @ev.Title" />
+                                <input type="number" name="points" value="@ev.PointsAwarded" min="1" max="100"
+                                       class="form-control form-control-sm" style="width:70px" />
+                                <button type="submit" class="btn btn-sm btn-success flex-grow-1"
+                                        onclick="return confirm('Начислить @ev.PointsAwarded баллов всем @evParticipants.Count участникам?')">
+                                    <i class="bi bi-gift me-1"></i>Всем участникам
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Нет участников</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Неудовлетворительное санитарное состояние -->
+        @if (Model.SanitaryBlocks.Any())
+        {
+            <div class="table-card border-danger">
+                <div class="p-3 border-bottom fw-semibold d-flex align-items-center" style="background:#fff5f5">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                    <span class="text-danger small">Плохое санитарное состояние</span>
+                    <span class="badge bg-danger ms-2">@Model.SanitaryBlocks.Count</span>
+                </div>
+                <div class="p-3 d-flex flex-column gap-2">
+                    @foreach (var sb in Model.SanitaryBlocks)
+                    {
+                        var sbDate      = sb.LastInspectionDate.ToString("dd.MM.yyyy");
+                        var sbResidents = System.Text.Json.JsonSerializer.Serialize(
+                            sb.Residents.Select(r => new { id = r.Id, name = r.FullName }));
+                        <div class="d-flex align-items-center justify-content-between border rounded p-2">
+                            <div>
+                                <span class="fw-bold me-2">Блок @sb.Block.BlockNumber</span>
+                                <span class="badge bg-danger me-2">@sb.LastScore</span>
+                                <span class="text-muted small">@sbDate</span>
+                                @if (sb.Residents.Any())
+                                {
+                                    <div class="small text-muted mt-1">
+                                        @string.Join(", ", sb.Residents.Select(r => r.FullName))
+                                    </div>
+                                }
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm ms-2 text-nowrap"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#sanitaryModal"
+                                    data-blockid="@sb.Block.Id"
+                                    data-block="@sb.Block.BlockNumber"
+                                    data-score="@sb.LastScore"
+                                    data-date="@sbDate"
+                                    data-residents="@sbResidents">
+                                <i class="bi bi-dash-circle me-1"></i>Взыскать
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
     </div>
 </div>
+
+<!-- Модальное окно: взыскать баллы за санитарное состояние (у всех жильцов блока) -->
+<div class="modal fade" id="sanitaryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Взыскать баллы за санитарное состояние
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" asp-action="DeductSanitaryPoints">
+                <div class="modal-body">
+                    <div class="alert alert-danger py-2 mb-3" id="sanitaryInfo"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Жильцы блока (баллы будут взысканы у всех):</label>
+                        <div id="sanitaryResidentsList" class="d-flex flex-wrap gap-1 p-2 bg-light rounded border"></div>
+                    </div>
+
+                    <input type="hidden" name="blockId" id="sanitaryBlockId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Баллы <span class="text-danger">*</span></label>
+                        <input type="number" name="points" class="form-control" min="1" max="100" value="5" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Причина <span class="text-danger">*</span></label>
+                        <input type="text" name="reason" id="sanitaryReason" class="form-control" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-dash-circle me-1"></i>Взыскать у всех
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ── Tom Select: поиск по ФИО в формах начисления / взыскания ─────────────
+    document.querySelectorAll('select.ts-select').forEach(el => {
+        new TomSelect(el, {
+            placeholder: '— Начните вводить ФИО —',
+            searchField: ['text'],
+            allowEmptyOption: true,
+            maxOptions: 300,
+            render: {
+                no_results: () => '<div class="no-results">Студент не найден</div>',
+            },
+        });
+    });
+
+    document.getElementById('sanitaryModal')?.addEventListener('show.bs.modal', function (e) {
+        const btn       = e.relatedTarget;
+        const blockId   = btn.dataset.blockid;
+        const block     = btn.dataset.block;
+        const score     = btn.dataset.score;
+        const date      = btn.dataset.date;
+        const residents = JSON.parse(btn.dataset.residents || '[]');
+
+        document.getElementById('sanitaryInfo').textContent =
+            `Блок ${block} — оценка ${score}/10 (проверка ${date})`;
+        document.getElementById('sanitaryReason').value =
+            `Неудовлетворительное санитарное состояние блока ${block}`;
+        document.getElementById('sanitaryBlockId').value = blockId;
+
+        const list = document.getElementById('sanitaryResidentsList');
+        list.innerHTML = '';
+        if (residents.length === 0) {
+            list.innerHTML = '<span class="text-muted small">Жильцы не найдены</span>';
+        } else {
+            residents.forEach(r => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-secondary';
+                badge.textContent = r.name;
+                list.appendChild(badge);
+            });
+        }
+    });
+</script>
+}

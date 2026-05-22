@@ -1,11 +1,4 @@
-/* ═══════════════════════════════════════════════
-   Общежитие ГГТУ — глобальные скрипты
-═══════════════════════════════════════════════ */
 
-/**
- * Tom Select — автоинициализация поиска в <select class="ts-select">.
- * Для маленького варианта (form-select-sm) добавьте класс "ts-sm".
- */
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('select.ts-select').forEach(el => {
         try {

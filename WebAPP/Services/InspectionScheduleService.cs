@@ -2,72 +2,96 @@ using System.Text.Json;
 
 namespace WebAPP.Services;
 
-/// <summary>
-/// Singleton-сервис для хранения расписания дней инспекций.
-/// Воспитатель выбирает дни недели (0=Пн … 6=Вс), в которые инспекторам
-/// разрешено проводить проверки. Данные хранятся в JSON-файле.
-/// </summary>
 public class InspectionScheduleService
 {
     private readonly string _filePath;
-    private HashSet<int> _enabledDays; // 0=Monday … 6=Sunday (DayOfWeek - 1, с учётом Пн=0)
+    private int _selectedDay; // 0=Пн … 6=Вс
 
     public static readonly string[] DayNames =
     {
         "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"
     };
 
+    public static readonly string[] DayShortNames =
+    {
+        "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"
+    };
+
     public InspectionScheduleService(IWebHostEnvironment env)
     {
         _filePath = Path.Combine(env.ContentRootPath, "inspection_schedule.json");
-        _enabledDays = LoadFromFile();
+        _selectedDay = LoadFromFile();
     }
 
-    /// <summary>Доступные дни (0=Пн … 6=Вс)</summary>
-    public IReadOnlySet<int> EnabledDays => _enabledDays;
+    public int SelectedDay => _selectedDay;
 
-    /// <summary>Разрешена ли проверка сегодня?</summary>
     public bool IsInspectionAllowedToday()
     {
-        // DayOfWeek: Sunday=0, Monday=1 … Saturday=6
-        // Преобразуем в 0=Monday … 6=Sunday
         var dow = (int)DateTime.Today.DayOfWeek;
-        var normalized = dow == 0 ? 6 : dow - 1; // Sunday → 6, Mon → 0 … Sat → 5
-        return _enabledDays.Contains(normalized);
+        var normalized = dow == 0 ? 6 : dow - 1;
+        return normalized == _selectedDay;
     }
 
-    /// <summary>Обновить расписание (вызывается воспитателем)</summary>
-    public void UpdateSchedule(IEnumerable<int> days)
+    public void UpdateSchedule(int day)
     {
-        _enabledDays = days.Where(d => d >= 0 && d <= 6).ToHashSet();
-        SaveToFile();
+        if (day >= 0 && day <= 6)
+        {
+            _selectedDay = day;
+            SaveToFile();
+        }
     }
 
-    private HashSet<int> LoadFromFile()
+    public List<DateOnly> GetMonthSchedule(int? year = null, int? month = null)
+    {
+        var now = DateTime.Today;
+        int y = year ?? now.Year;
+        int m = month ?? now.Month;
+        var dates = new List<DateOnly>();
+        int daysInMonth = DateTime.DaysInMonth(y, m);
+        for (int d = 1; d <= daysInMonth; d++)
+        {
+            var date = new DateOnly(y, m, d);
+            var dow = (int)date.DayOfWeek;
+            var normalized = dow == 0 ? 6 : dow - 1;
+            if (normalized == _selectedDay)
+                dates.Add(date);
+        }
+        return dates;
+    }
+
+    private int LoadFromFile()
     {
         try
         {
             if (File.Exists(_filePath))
             {
                 var json = File.ReadAllText(_filePath);
-                var days = JsonSerializer.Deserialize<int[]>(json);
-                if (days != null)
-                    return new HashSet<int>(days);
+                var data = JsonSerializer.Deserialize<ScheduleData>(json);
+                if (data != null)
+                    return Math.Clamp(data.SelectedDay, 0, 6);
+
+                var legacy = JsonSerializer.Deserialize<int[]>(json);
+                if (legacy != null && legacy.Length > 0)
+                    return Math.Clamp(legacy[0], 0, 6);
             }
         }
         catch { /* ignore */ }
 
-        // По умолчанию: понедельник, среда, пятница (0, 2, 4)
-        return new HashSet<int> { 0, 2, 4 };
+        return 2; // По умолчанию: среда (0=Пн, 2=Ср)
     }
 
     private void SaveToFile()
     {
         try
         {
-            var json = JsonSerializer.Serialize(_enabledDays.ToArray());
+            var json = JsonSerializer.Serialize(new ScheduleData { SelectedDay = _selectedDay });
             File.WriteAllText(_filePath, json);
         }
         catch { /* ignore */ }
+    }
+
+    private class ScheduleData
+    {
+        public int SelectedDay { get; set; }
     }
 }

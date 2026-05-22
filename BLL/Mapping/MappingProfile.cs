@@ -14,7 +14,9 @@ namespace BLL.Mapping
 
             // User mappings
             CreateMap<User, UserDto>()
-                .ForMember(dest => dest.RoleName, opt => opt.MapFrom(src => src.Role.Name));
+                .ForMember(dest => dest.RoleName,    opt => opt.MapFrom(src => src.Role.Name))
+                .ForMember(dest => dest.FacultyName, opt => opt.MapFrom(src => src.Faculty != null ? src.Faculty.Name : null))
+                .ForMember(dest => dest.GroupName,   opt => opt.MapFrom(src => src.Group   != null ? src.Group.Name   : null));
             CreateMap<CreateUserDto, User>()
                 .ForMember(dest => dest.PasswordHash, opt => opt.Ignore());
             CreateMap<UpdateUserDto, User>();

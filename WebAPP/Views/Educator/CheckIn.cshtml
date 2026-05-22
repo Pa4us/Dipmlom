@@ -1,0 +1,150 @@
+@model EducatorCheckInViewModel
+@{ ViewData["Title"] = "Заселение"; }
+
+<!-- Сводный PDF с паролями за последние 4 дня -->
+<div class="form-card mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+        <div class="fw-semibold"><i class="bi bi-key-fill text-warning me-2"></i>Сводный файл паролей</div>
+        <div class="text-muted small mt-1">
+            Скачайте пароли всех студентов, заселённых за последние 4 дня.
+            По истечении срока пароли из файла не восстановить.
+        </div>
+    </div>
+    <a asp-action="DownloadRecentCredentialsPdf" class="btn btn-warning">
+        <i class="bi bi-file-earmark-pdf me-1"></i>Скачать пароли (4 дня)
+    </a>
+</div>
+
+@if (!Model.PendingItems.Any())
+{
+    <div class="alert alert-info d-flex align-items-center gap-2">
+        <i class="bi bi-info-circle-fill fs-5"></i>
+        <span>Нет студентов, ожидающих заселения. Заведующая загружает список через раздел «Заселение».</span>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-people-fill fs-5"></i>
+        <span>Ожидают заселения: <strong>@Model.TotalPending</strong> студентов</span>
+    </div>
+
+    <form method="post" asp-action="ProcessSelectedCheckIn" id="checkInForm">
+        <div class="table-card">
+            <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span>
+                    <i class="bi bi-list-check me-1"></i>
+                    Список на заселение
+                    <span class="badge bg-warning text-dark ms-1">@Model.TotalPending</span>
+                </span>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAll()">
+                        Выбрать всех
+                    </button>
+                    <button type="submit"
+                            formaction="@Url.Action("RejectSelectedCheckIn")"
+                            class="btn btn-sm btn-outline-danger"
+                            onclick="return confirmReject()">
+                        <i class="bi bi-person-x me-1"></i>Не заселить
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-primary" onclick="return confirmSubmit()">
+                        <i class="bi bi-person-check me-1"></i>Заселить выбранных
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:40px">
+                                <input type="checkbox" id="checkAll" title="Выбрать всех" />
+                            </th>
+                            <th>ФИО</th>
+                            <th>Телефон</th>
+                            <th>Факультет</th>
+                            <th>Группа</th>
+                            <th>Блок</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.PendingItems)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="itemIds"
+                                           value="@item.Id" class="item-check" />
+                                </td>
+                                <td class="fw-semibold">@item.FullName</td>
+                                <td class="text-muted small">@(item.PhoneNumber ?? "—")</td>
+                                <td class="text-muted">@(item.Faculty ?? "—")</td>
+                                <td class="text-muted">@(item.Group ?? "—")</td>
+                                <td>
+                                    <span class="badge bg-primary">@item.BlockNumber</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+
+    <div class="form-card mt-3">
+        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2 text-info"></i>Как заселить</h6>
+        <ol class="small text-muted ps-3 mb-0">
+            <li class="mb-1">Выберите одного или нескольких студентов галочками</li>
+            <li class="mb-1">Нажмите «Заселить выбранных»</li>
+            <li class="mb-1">Система создаст аккаунты и назначит блоки</li>
+            <li>На следующей странице будут учётные данные (логины + пароли) — сохраните их!</li>
+        </ol>
+    </div>
+}
+
+@section Scripts {
+<script>
+    // Синхронизация главного чекбокса
+    document.getElementById('checkAll')?.addEventListener('change', function () {
+        document.querySelectorAll('.item-check').forEach(c => c.checked = this.checked);
+    });
+
+    // Кнопка «Выбрать всех» — тоггл
+    function toggleAll() {
+        const checks = document.querySelectorAll('.item-check');
+        const anyUnchecked = [...checks].some(c => !c.checked);
+        checks.forEach(c => c.checked = anyUnchecked);
+        const cb = document.getElementById('checkAll');
+        if (cb) cb.checked = anyUnchecked;
+    }
+
+    // Подтверждение заселения
+    function confirmSubmit() {
+        const n = document.querySelectorAll('.item-check:checked').length;
+        if (n === 0) {
+            alert('Выберите хотя бы одного студента');
+            return false;
+        }
+        return confirm(`Заселить ${n} студентов? Будут созданы учётные записи.`);
+    }
+
+    // Подтверждение отклонения
+    function confirmReject() {
+        const n = document.querySelectorAll('.item-check:checked').length;
+        if (n === 0) {
+            alert('Выберите хотя бы одного студента');
+            return false;
+        }
+        return confirm(`Отклонить заселение ${n} студентов? Они будут удалены из очереди.`);
+    }
+
+    // Клик по строке выбирает чекбокс
+    document.querySelectorAll('tbody tr').forEach(row => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', function (e) {
+            if (e.target.type === 'checkbox') return;
+            const cb = this.querySelector('.item-check');
+            if (cb) cb.checked = !cb.checked;
+        });
+    });
+</script>
+}

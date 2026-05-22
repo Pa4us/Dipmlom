@@ -58,18 +58,18 @@
     </form>
 </div>
 
-<!-- Кнопка экспорта (передаём текущие параметры фильтра) -->
-<div class="d-flex justify-content-end mb-3">
-    <a asp-action="ExportInspections"
+<!-- Кнопки экспорта (передаём текущие параметры фильтра) -->
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <a asp-action="ExportInspectionsPdf"
        asp-route-dateFrom="@Model.DateFrom"
        asp-route-dateTo="@Model.DateTo"
        asp-route-floor="@Model.SelectedFloor"
        asp-route-blockId="@Model.SelectedBlockId"
-       class="btn btn-success">
-        <i class="bi bi-file-earmark-excel me-1"></i>Экспорт в Excel
+       class="btn btn-danger">
+        <i class="bi bi-file-earmark-pdf me-1"></i>Экспорт в PDF
         @if (Model.Inspections.Any())
         {
-            <span class="badge bg-white text-success ms-1">@Model.Inspections.Count</span>
+            <span class="badge bg-white text-danger ms-1">@Model.Inspections.Count</span>
         }
     </a>
 </div>

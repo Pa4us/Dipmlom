@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using BLL.Interfaces;
+﻿using BLL.Interfaces;
 using BLL.Mapping;
 using BLL.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +31,8 @@ namespace BLL
             services.AddScoped<IEventService, EventService>();
             services.AddScoped<IStudentPointService, StudentPointService>();
             services.AddScoped<IStatisticsService, StatisticsService>();
+            services.AddScoped<ICheckInService, CheckInService>();
+            services.AddScoped<IEvictionService, EvictionService>();
 
             return services;
         }

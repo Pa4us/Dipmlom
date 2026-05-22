@@ -93,7 +93,8 @@ namespace WebAPI.Controllers
         [Authorize(Roles = "Educator,Mechanic")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateRepairRequestStatusDto dto)
         {
-            var response = await _repairRequestService.UpdateStatusAsync(id, dto.Status, dto.Comment);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var response = await _repairRequestService.UpdateStatusAsync(id, dto.Status, userId, dto.Comment);
             return HandleResponse(response);
         }
 

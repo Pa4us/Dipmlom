@@ -52,13 +52,13 @@ namespace BLL.Services
 
         public override async Task<ApiResponse<InspectionDto>> CreateAsync(CreateInspectionDto createDto)
         {
-            // Ограничение: одна проверка в разрешённый день на одного инспектора
+            // Ограничение: каждый блок проверяется не более одного раза в день
             var existing = await _repository.FindAsync(i =>
-                i.InspectorId == createDto.InspectorId &&
+                i.BlockId == createDto.BlockId &&
                 i.InspectionDate == createDto.InspectionDate);
 
             if (existing.Any())
-                return ApiResponse<InspectionDto>.Fail("Вы уже проводили проверку сегодня. Разрешена только одна проверка в день.");
+                return ApiResponse<InspectionDto>.Fail("Этот блок уже был проверен сегодня.");
 
             try
             {

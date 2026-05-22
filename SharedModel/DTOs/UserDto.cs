@@ -16,6 +16,8 @@ namespace SharedModel.DTOs
         public string? RoleName { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? FacultyName { get; set; }
+        public string? GroupName { get; set; }
     }
 
     public class CreateUserDto

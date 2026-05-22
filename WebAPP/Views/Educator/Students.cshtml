@@ -1,6 +1,23 @@
 @model StudentsListViewModel
 @{ ViewData["Title"] = "Студенты"; }
 
+@{
+    // Аббревиатуры факультетов ГГТУ по первым буквам слов
+    var facultyAbbr = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Гуманитарно-экономический факультет"]                     = "ГЭФ",
+        ["Машиностроительный факультет"]                            = "МФ",
+        ["Механико-технологический факультет"]                      = "МТФ",
+        ["Факультет автоматизированных и информационных систем"]    = "ФАИС",
+        ["Энергетический факультет"]                                = "ЭФ",
+    };
+    string FacultyAbbr(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "—";
+        return facultyAbbr.TryGetValue(name, out var abbr) ? abbr : name;
+    }
+}
+
 <!-- Поиск -->
 <div class="form-card mb-4">
     <form method="get" class="row g-3 align-items-end">
@@ -49,9 +66,9 @@
                 <tr>
                     <th style="width:30px">#</th>
                     <th>ФИО</th>
+                    <th>Факультет</th>
+                    <th>Группа</th>
                     <th>Логин</th>
-                    <th>Email</th>
-                    <th>Телефон</th>
                     <th>Блок / Комната</th>
                     <th>Заселён с</th>
                     <th class="text-center">Баллы</th>
@@ -86,21 +103,27 @@
                             <div class="fw-semibold">@c.User.FullName</div>
                         </td>
 
+                        <!-- Факультет -->
+                        <td class="small">
+                            @if (!string.IsNullOrWhiteSpace(c.User.FacultyName))
+                            {
+                                <span title="@c.User.FacultyName" class="text-primary fw-semibold"
+                                      style="cursor:default">@FacultyAbbr(c.User.FacultyName)</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+
+                        <!-- Группа -->
+                        <td class="small text-muted">
+                            @(c.User.GroupName ?? "—")
+                        </td>
+
                         <!-- Логин -->
                         <td>
                             <code class="text-secondary small">@c.User.Username</code>
-                        </td>
-
-                        <!-- Email -->
-                        <td class="small">
-                            <a href="mailto:@c.User.Email" class="text-decoration-none text-dark">
-                                @c.User.Email
-                            </a>
-                        </td>
-
-                        <!-- Телефон -->
-                        <td class="small text-muted">
-                            @(c.User.PhoneNumber ?? "—")
                         </td>
 
                         <!-- Блок / Комната -->

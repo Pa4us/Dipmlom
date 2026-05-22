@@ -14,7 +14,7 @@ namespace BLL.Interfaces
         Task<ApiResponse<IEnumerable<RepairRequestDto>>> GetRequestsByUserAsync(int userId);
         Task<ApiResponse<IEnumerable<RepairRequestDto>>> GetRequestsByBlockAsync(int blockId);
         Task<ApiResponse<IEnumerable<RepairRequestDto>>> GetRequestsAssignedToMeAsync(int mechanicId);
-        Task<ApiResponse<RepairRequestDto>> UpdateStatusAsync(int requestId, string status, string? comment = null);
+        Task<ApiResponse<RepairRequestDto>> UpdateStatusAsync(int requestId, string status, int userId, string? comment = null);
         Task<ApiResponse<RepairRequestDto>> AssignToMechanicAsync(int requestId, int mechanicId);
         Task<ApiResponse<RepairCommentDto>> AddCommentAsync(int requestId, int userId, string comment);
         Task<ApiResponse<IEnumerable<RepairCommentDto>>> GetCommentsAsync(int requestId);

@@ -95,6 +95,34 @@ namespace BLL.Services
             }
         }
 
+        public override async Task<ApiResponse<UserDto>> UpdateAsync(UpdateUserDto dto)
+        {
+            try
+            {
+                var user = await _repository.GetByIdAsync(dto.Id);
+                if (user == null)
+                    return ApiResponse<UserDto>.Fail("Пользователь не найден");
+
+                // Обновляем только разрешённые поля, не трогая PasswordHash, Username и т.д.
+                user.Email       = dto.Email;
+                user.FullName    = dto.FullName;
+                user.PhoneNumber = dto.PhoneNumber;
+                user.IsActive    = dto.IsActive;
+                user.RoleId      = dto.RoleId;
+
+                _repository.Update(user);
+                await _repository.SaveChangesAsync();
+
+                // Перечитываем с навигациями для маппинга RoleName и т.д.
+                var updated = await _repository.FindWithIncludeAsync(u => u.Id == dto.Id, u => u.Role, u => u.Faculty, u => u.Group);
+                return ApiResponse<UserDto>.Ok(_mapper.Map<UserDto>(updated.First()), "Пользователь обновлён");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<UserDto>.Fail($"Ошибка при обновлении: {ex.Message}");
+            }
+        }
+
         public override async Task<ApiResponse<UserDto>> CreateAsync(CreateUserDto createDto)
         {
             try
@@ -183,14 +211,14 @@ namespace BLL.Services
 
         public override async Task<ApiResponse<IEnumerable<UserDto>>> GetAllAsync()
         {
-            var users = await _repository.GetAllWithIncludeAsync(u => u.Role);
+            var users = await _repository.GetAllWithIncludeAsync(u => u.Role, u => u.Faculty, u => u.Group);
             var dtos = _mapper.Map<IEnumerable<UserDto>>(users);
             return ApiResponse<IEnumerable<UserDto>>.Ok(dtos);
         }
 
         public async Task<ApiResponse<IEnumerable<UserDto>>> GetUsersByRoleAsync(int roleId)
         {
-            var users = await _repository.FindWithIncludeAsync(u => u.RoleId == roleId, u => u.Role);
+            var users = await _repository.FindWithIncludeAsync(u => u.RoleId == roleId, u => u.Role, u => u.Faculty, u => u.Group);
             var dtos = _mapper.Map<IEnumerable<UserDto>>(users);
             return ApiResponse<IEnumerable<UserDto>>.Ok(dtos);
         }
@@ -198,7 +226,7 @@ namespace BLL.Services
         public async Task<ApiResponse<IEnumerable<UserDto>>> GetUsersByRoleNameAsync(string roleName)
         {
             var users = await _repository.FindWithIncludeAsync(
-                u => u.Role.Name == roleName, u => u.Role);
+                u => u.Role.Name == roleName, u => u.Role, u => u.Faculty, u => u.Group);
             var dtos = _mapper.Map<IEnumerable<UserDto>>(users);
             return ApiResponse<IEnumerable<UserDto>>.Ok(dtos);
         }

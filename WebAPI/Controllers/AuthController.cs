@@ -27,7 +27,6 @@ namespace WebAPI.Controllers
             _config       = config;
         }
 
-        /// <summary>Вход в систему (по логину или email)</summary>
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
@@ -36,7 +35,6 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Регистрация нового пользователя</summary>
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] CreateUserDto createDto)
@@ -45,7 +43,7 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Изменение пароля текущего пользователя</summary>
+        /// Изменение пароля текущего пользователя
         [HttpPost("change-password")]
         [Authorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
@@ -55,7 +53,7 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Получить информацию о текущем пользователе</summary>
+        /// Получить информацию о текущем пользователе
         [HttpGet("me")]
         [Authorize]
         public async Task<IActionResult> GetMe()
@@ -65,7 +63,7 @@ namespace WebAPI.Controllers
             return HandleResponseNotFound(response);
         }
 
-        /// <summary>Запрос сброса пароля — генерирует токен и отправляет письмо</summary>
+        /// Запрос сброса пароля — генерирует токен и отправляет письмо
         [HttpPost("forgot-password")]
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
@@ -109,7 +107,7 @@ namespace WebAPI.Controllers
             return Ok(ApiResponse<bool>.Ok(true, "Письмо с инструкциями отправлено на указанный email"));
         }
 
-        /// <summary>Сброс пароля по токену из письма</summary>
+        // Сброс пароля по токену из письма
         [HttpPost("reset-password")]
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)

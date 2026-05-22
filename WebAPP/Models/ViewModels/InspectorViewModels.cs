@@ -12,9 +12,13 @@ public class InspectorDashboardViewModel
 
     // Раздел проверок
     public List<InspectionDto> MyInspections { get; set; } = new();
+    /// <summary>Все блоки системы</summary>
     public List<BlockDto> Blocks { get; set; } = new();
+    /// <summary>Блоки, ещё не проверенные сегодня (доступны для выбора)</summary>
+    public List<BlockDto> AvailableBlocks { get; set; } = new();
+    /// <summary>Проверки, проведённые сегодня (любым инспектором)</summary>
+    public List<InspectionDto> TodayInspections { get; set; } = new();
     public bool IsInspectionDay { get; set; }
-    public bool AlreadyInspectedToday { get; set; }
 
     public static Dictionary<int, string> Zones => new()
     {

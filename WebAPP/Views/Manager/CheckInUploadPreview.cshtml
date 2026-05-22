@@ -1,0 +1,92 @@
+@model CheckInUploadPreviewViewModel
+@{ ViewData["Title"] = "Заселение — предпросмотр"; }
+
+<div class="row g-4">
+
+    @if (Model.ValidRows.Any())
+    {
+        <div class="col-12">
+            <div class="table-card">
+                <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Готовы к заселению — <strong>@Model.ValidRows.Count</strong> студентов
+                    </span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>ФИО</th>
+                                <th>Телефон</th>
+                                <th>Факультет</th>
+                                <th>Группа</th>
+                                <th>Блок</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int n = 1; }
+                            @foreach (var row in Model.ValidRows)
+                            {
+                                <tr>
+                                    <td class="text-muted">@n</td>
+                                    <td class="fw-semibold">@row.FullName</td>
+                                    <td class="text-muted small">@(row.PhoneNumber ?? "—")</td>
+                                    <td>@(row.Faculty ?? "—")</td>
+                                    <td>@(row.Group ?? "—")</td>
+                                    <td><span class="badge bg-primary">@row.BlockNumber</span></td>
+                                </tr>
+                                n++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.InvalidRows.Any())
+    {
+        <div class="col-12">
+            <div class="table-card border-warning">
+                <div class="p-3 border-bottom fw-semibold" style="background:#fffdf0">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                    Строки с ошибками — <strong>@Model.InvalidRows.Count</strong> (будут пропущены)
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>#</th><th>ФИО</th><th>Блок</th><th>Ошибка</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in Model.InvalidRows)
+                            {
+                                <tr class="table-warning">
+                                    <td class="text-muted">@row.RowNumber</td>
+                                    <td>@row.FullName</td>
+                                    <td>@row.BlockNumber</td>
+                                    <td class="text-danger">@row.Error</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="col-12 d-flex gap-3 justify-content-between align-items-center">
+        <a asp-action="CheckInUpload" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Загрузить другой файл
+        </a>
+        @if (Model.ValidRows.Any())
+        {
+            <form method="post" asp-action="CheckInUploadConfirm">
+                <input type="hidden" name="validRowsJson" value="@Model.ValidRowsJson" />
+                <button type="submit" class="btn btn-success"
+                        onclick="return confirm('Отправить @Model.ValidRows.Count студентов на заселение?')">
+                    <i class="bi bi-send me-1"></i>Отправить на заселение (@Model.ValidRows.Count)
+                </button>
+            </form>
+        }
+    </div>
+</div>

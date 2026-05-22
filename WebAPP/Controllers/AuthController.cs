@@ -65,7 +65,7 @@ public class AuthController : Controller
         return user.RoleName switch
         {
             "Manager"   => RedirectToAction("Dashboard", "Manager"),
-            "Educator"  => RedirectToAction("Dashboard", "Educator"),
+            "Educator"  => RedirectToAction("Points", "Educator"),
             "Inspector" => RedirectToAction("Dashboard", "Inspector"),
             "Mechanic"  => RedirectToAction("Dashboard", "Mechanic"),
             _           => RedirectToAction("Dashboard", "Student"),

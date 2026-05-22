@@ -94,7 +94,7 @@ namespace BLL.Services
             return ApiResponse<IEnumerable<RepairRequestDto>>.Ok(_mapper.Map<IEnumerable<RepairRequestDto>>(requests));
         }
 
-        public async Task<ApiResponse<RepairRequestDto>> UpdateStatusAsync(int requestId, string status, string? comment = null)
+        public async Task<ApiResponse<RepairRequestDto>> UpdateStatusAsync(int requestId, string status, int userId, string? comment = null)
         {
             var request = await _repository.GetByIdAsync(requestId);
             if (request == null)
@@ -103,6 +103,10 @@ namespace BLL.Services
             request.Status = status;
             if (status == RequestStatus.Completed.ToString())
                 request.CompletedAt = DateTime.Now;
+
+            // Авто-назначение: если слесарь берёт заявку в работу и она ещё не назначена
+            if (status == RequestStatus.InProgress.ToString() && request.AssignedToId == null)
+                request.AssignedToId = userId;
 
             _repository.Update(request);
             await _repository.SaveChangesAsync();
@@ -113,7 +117,7 @@ namespace BLL.Services
                 var commentEntity = new RepairComment
                 {
                     RepairRequestId = requestId,
-                    UserId = request.AssignedToId ?? 0,
+                    UserId = userId,
                     Comment = comment,
                     CreatedAt = DateTime.Now
                 };
@@ -133,14 +137,14 @@ namespace BLL.Services
 
             var mechanic = await _userRepository.GetByIdAsync(mechanicId);
             if (mechanic == null)
-                return ApiResponse<RepairRequestDto>.Fail("Слесарь не найден");
+                return ApiResponse<RepairRequestDto>.Fail("Мастер не найден");
 
             request.AssignedToId = mechanicId;
             _repository.Update(request);
             await _repository.SaveChangesAsync();
 
             var dto = _mapper.Map<RepairRequestDto>(request);
-            return ApiResponse<RepairRequestDto>.Ok(dto, $"Заявка назначена слесарю {mechanic.FullName}");
+            return ApiResponse<RepairRequestDto>.Ok(dto, $"Заявка назначена мастеру {mechanic.FullName}");
         }
 
         public async Task<ApiResponse<RepairCommentDto>> AddCommentAsync(int requestId, int userId, string comment)

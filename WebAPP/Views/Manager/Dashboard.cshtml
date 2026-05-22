@@ -1,6 +1,17 @@
 @model ManagerDashboardViewModel
 @{ ViewData["Title"] = "Панель заведующей"; }
 
+@functions {
+    static string RoleRu(string? r) => r switch {
+        "Student"   => "Студент",
+        "Inspector" => "Проверяющий",
+        "Educator"  => "Воспитатель",
+        "Manager"   => "Заведующая",
+        "Mechanic"  => "Мастер",
+        _           => r ?? "—"
+    };
+}
+
 <!-- Статистика -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-2">
@@ -133,7 +144,7 @@
                         <td class="fw-semibold">@u.FullName</td>
                         <td><code>@u.Username</code></td>
                         <td class="small text-muted">@u.Email</td>
-                        <td><span class="badge bg-light text-dark border">@u.RoleName</span></td>
+                        <td><span class="badge bg-light text-dark border">@RoleRu(u.RoleName)</span></td>
                         <td>
                             @if (u.IsActive)
                             {

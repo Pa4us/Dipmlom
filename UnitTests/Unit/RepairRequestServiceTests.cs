@@ -9,10 +9,7 @@ using SharedModel.DTOs;
 
 namespace UnitTests.Unit;
 
-/// <summary>
-/// Юнит-тесты для RepairRequestService.
-/// Проверяем смену статуса, назначение слесаря, создание заявки.
-/// </summary>
+
 public class RepairRequestServiceTests
 {
     private static (RepairRequestService service,
@@ -36,7 +33,7 @@ public class RepairRequestServiceTests
         return (service, reqRepo, commentRepo, userRepo);
     }
 
-    // ── UpdateStatusAsync ────────────────────────────────────────────────────
+    // ── UpdateStatusAsync 
 
     [Fact]
     public async Task UpdateStatusAsync_PendingToInProgress_UpdatesStatus()
@@ -144,7 +141,6 @@ public class RepairRequestServiceTests
             Times.Once);
     }
 
-    // ── AssignToMechanicAsync ────────────────────────────────────────────────
 
     [Fact]
     public async Task AssignToMechanicAsync_ValidIds_AssignsMechanic()

@@ -15,7 +15,7 @@ namespace WebAPI.Controllers
             _blockService = blockService;
         }
 
-        /// <summary>Получить все блоки</summary>
+        // Получить все блоки
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -23,7 +23,7 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Получить блок по ID</summary>
+        //Получить блок по ID
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -31,7 +31,7 @@ namespace WebAPI.Controllers
             return HandleResponseNotFound(response);
         }
 
-        /// <summary>Получить блок с комнатами</summary>
+        //Получить блок с комнатами
         [HttpGet("{id:int}/rooms")]
         public async Task<IActionResult> GetWithRooms(int id)
         {
@@ -39,7 +39,7 @@ namespace WebAPI.Controllers
             return HandleResponseNotFound(response);
         }
 
-        /// <summary>Получить блоки по этажу</summary>
+        //Получить блоки по этажу
         [HttpGet("by-floor/{floor:int}")]
         public async Task<IActionResult> GetByFloor(int floor)
         {
@@ -47,7 +47,7 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Получить блоки в диапазоне этажей</summary>
+        //Получить блоки в диапазоне этажей
         [HttpGet("by-floor-range")]
         public async Task<IActionResult> GetByFloorRange([FromQuery] int from, [FromQuery] int to)
         {
@@ -55,7 +55,7 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Создать блок</summary>
+        //Создать блок
         [HttpPost]
         [Authorize(Roles = "Educator,Manager")]
         public async Task<IActionResult> Create([FromBody] CreateBlockDto dto)
@@ -64,7 +64,7 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Обновить блок</summary>
+        //Обновить блок
         [HttpPut]
         [Authorize(Roles = "Educator,Manager")]
         public async Task<IActionResult> Update([FromBody] UpdateBlockDto dto)
@@ -73,7 +73,7 @@ namespace WebAPI.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>Удалить блок</summary>
+        //Удалить блок
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Educator,Manager")]
         public async Task<IActionResult> Delete(int id)

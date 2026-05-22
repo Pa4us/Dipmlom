@@ -1,0 +1,46 @@
+@{ ViewData["Title"] = "Заселение — загрузка списка"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="form-card">
+            <h6 class="fw-bold mb-1">
+                <i class="bi bi-person-plus-fill text-primary me-2"></i>Загрузить список на заселение
+            </h6>
+            <p class="text-muted small mb-3">
+                Загрузите PDF-файл со списком новых студентов. Система распознает таблицу,
+                и воспитатель сможет заселять студентов по одному или группами.
+            </p>
+
+            <div class="alert alert-info py-2 mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Формат PDF-таблицы:</strong> колонки
+                <code>ФИО</code>, <code>Факультет</code>, <code>Группа</code>, <code>Блок</code>
+                (блок в формате <code>44-1</code> — блок 44, комната 1).
+                Колонки разделяются табуляцией, точкой с запятой или двумя и более пробелами.
+            </div>
+
+            <form method="post" enctype="multipart/form-data">
+                <div asp-validation-summary="All"
+                     class="alert alert-danger py-2 mb-3"
+                     style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">PDF-файл со списком студентов</label>
+                    <input type="file" name="file" accept=".pdf" class="form-control" required />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-upload me-1"></i>Загрузить и проверить
+                </button>
+            </form>
+
+            <hr class="my-3" />
+
+            <div class="d-flex align-items-center gap-2">
+                <a asp-action="DownloadCheckInSamplePdf" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Скачать тестовый PDF
+                </a>
+                <span class="text-muted small">— для проверки парсера (временная кнопка)</span>
+            </div>
+        </div>
+    </div>
+</div>

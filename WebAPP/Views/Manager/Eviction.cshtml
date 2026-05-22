@@ -1,0 +1,91 @@
+@model ManagerEvictionViewModel
+@{ ViewData["Title"] = "Выселение"; }
+
+@if (!Model.PendingEvictions.Any())
+{
+    <div class="alert alert-info d-flex align-items-center gap-2">
+        <i class="bi bi-info-circle-fill fs-5"></i>
+        <span>Нет заявок на выселение. Воспитатель отмечает студентов, сдавших обходной лист.</span>
+    </div>
+}
+else
+{
+    <div class="table-card">
+        <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+            <span>
+                <i class="bi bi-person-x-fill text-danger me-2"></i>
+                Ожидают выселения — <strong>@Model.PendingEvictions.Count</strong>
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="selectAll()">
+                Выбрать всех
+            </button>
+        </div>
+
+        <form method="post" asp-action="ConfirmEviction" id="evictionForm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="checkAll" onchange="toggleAll(this)" /></th>
+                            <th>Студент</th>
+                            <th>Логин</th>
+                            <th>Блок</th>
+                            <th>Комната</th>
+                            <th>Подал(а)</th>
+                            <th>Дата подачи</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ev in Model.PendingEvictions)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="evictionIds" value="@ev.Id" class="eviction-check" />
+                                </td>
+                                <td class="fw-semibold">@ev.StudentName</td>
+                                <td class="text-muted">@ev.StudentUsername</td>
+                                <td>@(ev.BlockNumber ?? "—")</td>
+                                <td>@(ev.RoomNumber ?? "—")</td>
+                                <td>@ev.EducatorName</td>
+                                <td class="text-muted small">@ev.RequestedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 border-top d-flex justify-content-end gap-2 align-items-center">
+                <span class="text-muted small" id="selectedCount">Выбрано: 0</span>
+                <button type="submit" class="btn btn-danger"
+                        onclick="return confirmEviction()">
+                    <i class="bi bi-person-dash me-1"></i>Выселить выбранных
+                </button>
+            </div>
+        </form>
+    </div>
+}
+
+@section Scripts {
+<script>
+    function toggleAll(cb) {
+        document.querySelectorAll('.eviction-check').forEach(c => c.checked = cb.checked);
+        updateCount();
+    }
+    function selectAll() {
+        document.querySelectorAll('.eviction-check').forEach(c => c.checked = true);
+        document.getElementById('checkAll').checked = true;
+        updateCount();
+    }
+    function updateCount() {
+        const n = document.querySelectorAll('.eviction-check:checked').length;
+        document.getElementById('selectedCount').textContent = `Выбрано: ${n}`;
+    }
+    function confirmEviction() {
+        const n = document.querySelectorAll('.eviction-check:checked').length;
+        if (n === 0) { alert('Выберите хотя бы одного студента'); return false; }
+        return confirm(`Выселить ${n} студентов? Все их данные и аккаунты будут удалены безвозвратно.`);
+    }
+    document.querySelectorAll('.eviction-check').forEach(c =>
+        c.addEventListener('change', updateCount));
+</script>
+}

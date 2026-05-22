@@ -1,0 +1,56 @@
+@model EducatorCheckInResultViewModel
+@{ ViewData["Title"] = "Результаты заселения"; }
+
+<div class="alert alert-success d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-check-circle-fill fs-5"></i>
+    <span>Успешно заселено <strong>@Model.ProcessedCount</strong> студентов.</span>
+</div>
+
+<div class="table-card mb-4">
+    <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-key-fill text-warning me-2"></i>Учётные данные — сохраните сейчас!</span>
+        @if (Model.CreatedItems.Any())
+        {
+            <form method="post" asp-action="DownloadCheckInCredentialsPdf">
+                <input type="hidden" name="dataJson"
+                       value="@System.Text.Json.JsonSerializer.Serialize(Model.CreatedItems)" />
+                <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Скачать PDF с паролями
+                </button>
+            </form>
+        }
+    </div>
+    <div class="alert alert-warning py-2 mx-3 mt-3">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        После закрытия этой страницы пароли не отображаются. Сохраните PDF или запишите их сейчас.
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>ФИО</th>
+                    <th>Факультет / Группа</th>
+                    <th>Логин</th>
+                    <th>Пароль</th>
+                    <th>Блок</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.CreatedItems)
+                {
+                    <tr>
+                        <td class="fw-semibold">@item.FullName</td>
+                        <td class="text-muted small">@(item.Faculty ?? "—") / @(item.Group ?? "—")</td>
+                        <td><code>@item.Username</code></td>
+                        <td><code class="text-danger fw-bold">@item.GeneratedPassword</code></td>
+                        <td><span class="badge bg-primary">@item.BlockNumber</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<a asp-action="CheckIn" class="btn btn-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Назад к заявкам
+</a>

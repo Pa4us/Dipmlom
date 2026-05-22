@@ -18,18 +18,18 @@ namespace WebAPI
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // ── DAL: DbContext + Repositories ──────────────────────────────
+            // ── DAL: DbContext + Repositories 
             builder.Services.AddDataAccess(builder.Configuration);
 
-            // ── BLL: Сервисы + AutoMapper ───────────────────────────────────
+            // ── BLL: Сервисы + AutoMapper 
             builder.Services.AddBusinessLogic();
 
-            // ── Email + Password Reset ───────────────────────────────────────
+            // ── Email + Password Reset 
             builder.Services.AddMemoryCache();
             builder.Services.AddScoped<IEmailService, SmtpEmailService>();
             builder.Services.AddSingleton<IPasswordResetService, PasswordResetService>();
 
-            // ── JWT ─────────────────────────────────────────────────────────
+            // ── JWT 
             builder.Services.AddScoped<IJwtService, JwtService>();
 
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -135,7 +135,7 @@ namespace WebAPI
 
             app.MapControllers();
 
-            // ── Seed данные при первом запуске в Development ────────────────
+            // ── Seed данные при первом запуске в Development 
             if (app.Environment.IsDevelopment())
             {
                 await DbSeeder.SeedAsync(app.Services);

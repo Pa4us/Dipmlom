@@ -1,0 +1,153 @@
+@model EducatorEvictionViewModel
+@{ ViewData["Title"] = "Выселение"; }
+
+<div class="row g-4">
+
+    <!-- Поиск + форма -->
+    <div class="col-lg-8">
+        <div class="form-card mb-3">
+            <form method="get" class="d-flex gap-2">
+                <input type="text" name="search" value="@Model.Search"
+                       class="form-control" placeholder="Поиск по ФИО или логину..." />
+                <button type="submit" class="btn btn-outline-secondary">
+                    <i class="bi bi-search"></i>
+                </button>
+                @if (!string.IsNullOrEmpty(Model.Search))
+                {
+                    <a asp-action="Eviction" class="btn btn-outline-danger">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                }
+            </form>
+        </div>
+
+        @if (!Model.Residents.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-1"></i>
+                @(string.IsNullOrEmpty(Model.Search) ? "Нет студентов с текущим проживанием." : "Ничего не найдено.")
+            </div>
+        }
+        else
+        {
+            var pendingIds = Model.PendingEvictions.Select(e => e.UserId).ToHashSet();
+
+            <form method="post" asp-action="SubmitEviction" id="evictionForm">
+                <div class="table-card">
+                    <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-people me-1"></i>Жильцы (@Model.Residents.Count)
+                        </span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAll()">
+                                Выбрать всех
+                            </button>
+                            <button type="submit" class="btn btn-sm btn-warning"
+                                    onclick="return confirmSubmit()">
+                                <i class="bi bi-clipboard-check me-1"></i>Обходной лист сдан
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="checkAll" /></th>
+                                    <th>ФИО</th>
+                                    <th>Логин</th>
+                                    <th>Блок</th>
+                                    <th>Комната</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var card in Model.Residents)
+                                {
+                                    var isPending = pendingIds.Contains(card.User.Id);
+                                    <tr class="@(isPending ? "table-warning" : "")">
+                                        <td>
+                                            @if (!isPending)
+                                            {
+                                                <input type="checkbox" name="userIds"
+                                                       value="@card.User.Id" class="resident-check" />
+                                            }
+                                        </td>
+                                        <td class="fw-semibold">@card.User.FullName</td>
+                                        <td class="text-muted">@card.User.Username</td>
+                                        <td>@(card.Residence?.BlockNumber ?? "—")</td>
+                                        <td>@(card.Residence?.RoomNumber?.ToString() ?? "—")</td>
+                                        <td>
+                                            @if (isPending)
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-hourglass-split me-1"></i>Ожидает подтверждения
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-secondary">Проживает</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </form>
+        }
+    </div>
+
+    <!-- Панель справа -->
+    <div class="col-lg-4">
+        @if (Model.PendingEvictions.Any())
+        {
+            <div class="form-card border-warning">
+                <h6 class="fw-bold text-warning mb-3">
+                    <i class="bi bi-hourglass-split me-2"></i>Ожидают подтверждения менеджером
+                </h6>
+                <ul class="list-unstyled mb-0">
+                    @foreach (var ev in Model.PendingEvictions)
+                    {
+                        <li class="py-1 border-bottom small">
+                            <div class="fw-semibold">@ev.StudentName</div>
+                            <div class="text-muted">@ev.BlockNumber · @ev.RequestedAt.ToString("dd.MM.yyyy")</div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <div class="form-card mt-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2 text-info"></i>Как это работает</h6>
+            <ol class="small text-muted ps-3 mb-0">
+                <li class="mb-1">Выберите студентов, сдавших обходной лист</li>
+                <li class="mb-1">Нажмите «Обходной лист сдан»</li>
+                <li class="mb-1">Заведующая увидит список и подтвердит выселение</li>
+                <li>После подтверждения аккаунты удаляются</li>
+            </ol>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    document.getElementById('checkAll')?.addEventListener('change', function() {
+        document.querySelectorAll('.resident-check').forEach(c => c.checked = this.checked);
+    });
+    function toggleAll() {
+        const checks = document.querySelectorAll('.resident-check');
+        const anyUnchecked = [...checks].some(c => !c.checked);
+        checks.forEach(c => c.checked = anyUnchecked);
+        const cb = document.getElementById('checkAll');
+        if (cb) cb.checked = anyUnchecked;
+    }
+    function confirmSubmit() {
+        const n = document.querySelectorAll('.resident-check:checked').length;
+        if (n === 0) { alert('Выберите хотя бы одного студента'); return false; }
+        return confirm(`Подтвердить сдачу обходного листа для ${n} студентов?`);
+    }
+</script>
+}

@@ -63,7 +63,7 @@ namespace BLL.Services
         public async Task<ApiResponse<IEnumerable<StudentRatingDto>>> GetAllRatingsAsync()
         {
             var users = await _userRepository.FindWithIncludeAsync(
-                u => u.Role.Name == "Student", u => u.Role);
+                u => u.Role.Name == "Student" || u.Role.Name == "Inspector", u => u.Role);
             var ratings = new List<StudentRatingDto>();
 
             foreach (var user in users)

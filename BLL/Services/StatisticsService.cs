@@ -155,13 +155,6 @@ namespace BLL.Services
             return ApiResponse<DormitoryStatisticsDto>.Ok(result);
         }
 
-        public async Task<ApiResponse<byte[]>> ExportStatisticsToExcelAsync(int? floor = null, int? weekNumber = null, int? year = null)
-        {
-            // TODO: Реализовать экспорт в Excel
-            // Пока возвращаем заглушку
-            return ApiResponse<byte[]>.Fail("Экспорт в Excel временно недоступен");
-        }
-
         public async Task<ApiResponse<bool>> RecalculateWeeklyStatsAsync(int blockId, DateOnly date)
         {
             try

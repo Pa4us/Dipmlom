@@ -16,9 +16,10 @@ public class ManagerDashboardViewModel
 
 public class ManagerUsersViewModel
 {
-    public List<UserDto>  Users  { get; set; } = new();
-    public List<RoleDto>  Roles  { get; set; } = new();
-    public string?        Search { get; set; }
+    public List<UserDto>  Users        { get; set; } = new();
+    public List<RoleDto>  Roles        { get; set; } = new();
+    public string?        Search       { get; set; }
+    public string?        SelectedRole { get; set; }
 }
 
 public class ManagerBlocksViewModel
@@ -59,6 +60,21 @@ public class ImportUsersPreviewViewModel
 public class ImportUsersResultViewModel
 {
     public ImportUsersResultDto Result { get; set; } = new();
-    /// <summary>Excel-файл с паролями для скачивания (base64)</summary>
     public string? PasswordReportBase64 { get; set; }
+}
+
+// ─── Заселение ────────────────────────────────────────────────────────────
+
+public class CheckInUploadPreviewViewModel
+{
+    public List<CheckInItemRowDto> ValidRows   { get; set; } = new();
+    public List<CheckInItemRowDto> InvalidRows { get; set; } = new();
+    public string ValidRowsJson { get; set; } = "[]";
+}
+
+// ─── Выселение (менеджер) ────────────────────────────────────────────────
+
+public class ManagerEvictionViewModel
+{
+    public List<EvictionRequestDto> PendingEvictions { get; set; } = new();
 }

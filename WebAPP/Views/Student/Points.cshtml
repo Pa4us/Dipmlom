@@ -1,6 +1,16 @@
 @model StudentPointsViewModel
 @{ ViewData["Title"] = "Мои баллы"; }
 
+@functions {
+    static string SourceTypeRu(string? s) => s switch {
+        "Event"      => "Мероприятие",
+        "Manual"     => "Вручную",
+        "Sanitary"   => "Сан. состояние",
+        "Inspection" => "Проверка",
+        _            => s ?? "—"
+    };
+}
+
 <div class="row g-4">
 
     <!-- Итоговая карточка -->
@@ -75,7 +85,7 @@
                                 @(p.PointsType == "Award" ? "+" : "-")@p.Points
                             </td>
                             <td class="small">@p.Reason</td>
-                            <td class="small text-muted">@p.SourceType</td>
+                            <td class="small text-muted">@SourceTypeRu(p.SourceType)</td>
                         </tr>
                     }
                     @if (!Model.Points.Any())

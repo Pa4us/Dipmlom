@@ -44,7 +44,7 @@ public class ManagerController : Controller
 
     // ─── Аккаунты ────────────────────────────────────────────────────────────
 
-    public async Task<IActionResult> Users(string? search)
+    public async Task<IActionResult> Users(string? search, string? role)
     {
         ViewData["Title"] = "Управление аккаунтами";
 
@@ -53,6 +53,12 @@ public class ManagerController : Controller
         await Task.WhenAll(usersTask, rolesTask);
 
         var users = usersTask.Result?.Data?.ToList() ?? new();
+
+        // Фильтр по роли
+        if (!string.IsNullOrWhiteSpace(role))
+            users = users.Where(u => u.RoleName == role).ToList();
+
+        // Поиск по тексту
         if (!string.IsNullOrWhiteSpace(search))
         {
             var q = search.Trim().ToLower();
@@ -64,9 +70,10 @@ public class ManagerController : Controller
 
         var vm = new ManagerUsersViewModel
         {
-            Users  = users.OrderBy(u => u.RoleName).ThenBy(u => u.FullName).ToList(),
-            Roles  = rolesTask.Result?.Data?.OrderBy(r => r.Name).ToList() ?? new(),
-            Search = search,
+            Users        = users.OrderBy(u => u.RoleName).ThenBy(u => u.FullName).ToList(),
+            Roles        = rolesTask.Result?.Data?.OrderBy(r => r.Name).ToList() ?? new(),
+            Search       = search,
+            SelectedRole = role,
         };
         return View(vm);
     }
@@ -274,104 +281,6 @@ public class ManagerController : Controller
         return RedirectToAction("Residences");
     }
 
-    // ─── Импорт аккаунтов из Excel ───────────────────────────────────────────
-
-    [HttpGet]
-    public IActionResult ImportUsers()
-    {
-        ViewData["Title"] = "Импорт аккаунтов";
-        return View();
-    }
-
-    /// <summary>Шаг 1 — загружаем файл, парсим, отправляем на preview (dry-run)</summary>
-    [HttpPost]
-    public async Task<IActionResult> ImportUsers(IFormFile? file)
-    {
-        ViewData["Title"] = "Импорт аккаунтов";
-
-        if (file == null || file.Length == 0)
-        {
-            ModelState.AddModelError("", "Выберите файл Excel (.xlsx)");
-            return View();
-        }
-        if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
-        {
-            ModelState.AddModelError("", "Поддерживается только формат .xlsx");
-            return View();
-        }
-
-        // Парсим Excel в DTO
-        using var stream = file.OpenReadStream();
-        var (rows, parseError) = ExcelImportService.ParseUsersFile(stream);
-        if (parseError != null)
-        {
-            ModelState.AddModelError("", parseError);
-            return View();
-        }
-
-        // Dry-run: валидация + генерация паролей
-        var resp = await _api.PostAsync<ImportUsersResultDto>(
-            "api/users/import",
-            new ImportUsersRequestDto { Rows = rows, DryRun = true });
-
-        if (resp?.Success != true || resp.Data == null)
-        {
-            ModelState.AddModelError("", resp?.Message ?? "Ошибка при проверке файла");
-            return View();
-        }
-
-        var vm = new ImportUsersPreviewViewModel
-        {
-            Result       = resp.Data,
-            ValidRowsJson = JsonSerializer.Serialize(resp.Data.ValidRows),
-        };
-        return View("ImportUsersPreview", vm);
-    }
-
-    /// <summary>Шаг 2 — подтверждение, реальное создание аккаунтов</summary>
-    [HttpPost]
-    public async Task<IActionResult> ImportUsersConfirm(string validRowsJson)
-    {
-        ViewData["Title"] = "Импорт аккаунтов";
-
-        List<ImportUserRowDto>? rows;
-        try { rows = JsonSerializer.Deserialize<List<ImportUserRowDto>>(validRowsJson); }
-        catch { TempData["Error"] = "Не удалось обработать данные. Попробуйте снова."; return RedirectToAction("ImportUsers"); }
-
-        if (rows == null || rows.Count == 0)
-        { TempData["Error"] = "Нет строк для импорта."; return RedirectToAction("ImportUsers"); }
-
-        var resp = await _api.PostAsync<ImportUsersResultDto>(
-            "api/users/import",
-            new ImportUsersRequestDto { Rows = rows, DryRun = false });
-
-        if (resp?.Success != true || resp.Data == null)
-        {
-            TempData["Error"] = resp?.Message ?? "Ошибка при создании аккаунтов";
-            return RedirectToAction("ImportUsers");
-        }
-
-        // Генерируем Excel с паролями для скачивания
-        var passwordStream = ExcelExportService.ExportImportedPasswords(resp.Data.ValidRows);
-        var base64 = Convert.ToBase64String(((MemoryStream)passwordStream).ToArray());
-
-        var vm = new ImportUsersResultViewModel
-        {
-            Result              = resp.Data,
-            PasswordReportBase64 = base64,
-        };
-        return View("ImportUsersResult", vm);
-    }
-
-    /// <summary>Шаблон Excel для импорта аккаунтов</summary>
-    public IActionResult ImportUsersTemplate()
-    {
-        var stream   = ExcelExportService.ExportImportUsersTemplate();
-        return File(stream,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "Шаблон_импорта_аккаунтов.xlsx");
-    }
-
     public async Task<IActionResult> ExportResidences()
     {
         var residencesResp = await _api.GetAsync<IEnumerable<ResidenceDto>>("api/residences");
@@ -380,11 +289,9 @@ public class ManagerController : Controller
             .OrderBy(r => r.BlockNumber).ThenBy(r => r.RoomNumber)
             .ToList() ?? new();
 
-        var stream   = ExcelExportService.ExportResidences(residences);
-        var fileName = $"Проживание_{DateTime.Today:yyyyMMdd}.xlsx";
-        return File(stream,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            fileName);
+        var stream   = PdfExportService.ExportResidencesPdf(residences);
+        var fileName = $"Проживание_{DateTime.Today:yyyyMMdd}.pdf";
+        return File(stream, "application/pdf", fileName);
     }
 
     [HttpPost]
@@ -396,5 +303,246 @@ public class ManagerController : Controller
         TempData[result?.Success == true ? "Success" : "Error"] =
             result?.Success == true ? "Студент выселен" : result?.Message ?? "Ошибка при выселении";
         return RedirectToAction("Residences");
+    }
+
+    // ─── Заселение — загрузка списка студентов ───────────────────────────────
+
+    [HttpGet]
+    public IActionResult CheckInUpload()
+    {
+        ViewData["Title"] = "Заселение — загрузка списка";
+        return View();
+    }
+
+    [HttpPost]
+    public IActionResult CheckInUpload(IFormFile? file)
+    {
+        ViewData["Title"] = "Заселение — загрузка списка";
+
+        if (file == null || file.Length == 0)
+        { ModelState.AddModelError("", "Выберите PDF-файл (.pdf)"); return View(); }
+
+        if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        { ModelState.AddModelError("", "Поддерживается только формат .pdf"); return View(); }
+
+        using var stream = file.OpenReadStream();
+        var (rows, error) = PdfImportService.ParseCheckInFile(stream);
+        if (error != null)
+        { ModelState.AddModelError("", error); return View(); }
+
+        // Шаг 1: базовые проверки (ФИО, блок, номер комнаты)
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.FullName))
+                row.Error = "Не указано ФИО";
+            else if (string.IsNullOrWhiteSpace(row.BlockNumber))
+                row.Error = "Не указан блок";
+            else if (!IsRoomNumberValid(row.BlockNumber))
+                row.Error = $"Недопустимый номер комнаты в «{row.BlockNumber}» — допустимы только 1 или 2";
+        }
+
+        // Шаг 2: проверка вместимости — не более 2 студентов на одну комнату в файле
+        var roomCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in rows.Where(r => r.Error == null))
+        {
+            var key = row.BlockNumber.Trim().ToUpper();
+            roomCounts.TryGetValue(key, out var cnt);
+            if (cnt >= 2)
+                row.Error = $"Комната «{row.BlockNumber}» уже занята 2 студентами — превышена вместимость";
+            else
+                roomCounts[key] = cnt + 1;
+        }
+
+        var valid   = rows.Where(r => r.Error == null).ToList();
+        var invalid = rows.Where(r => r.Error != null).ToList();
+
+        var vm = new CheckInUploadPreviewViewModel
+        {
+            ValidRows    = valid,
+            InvalidRows  = invalid,
+            ValidRowsJson = JsonSerializer.Serialize(valid),
+        };
+        return View("CheckInUploadPreview", vm);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CheckInUploadConfirm(string validRowsJson)
+    {
+        List<CheckInItemRowDto>? rows;
+        try { rows = JsonSerializer.Deserialize<List<CheckInItemRowDto>>(validRowsJson); }
+        catch { TempData["Error"] = "Ошибка данных. Попробуйте снова."; return RedirectToAction("CheckInUpload"); }
+
+        if (rows == null || rows.Count == 0)
+        { TempData["Error"] = "Нет строк для заселения."; return RedirectToAction("CheckInUpload"); }
+
+        var managerId = int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+        var resp = await _api.PostAsync<CheckInRequestDto>("api/checkin/requests",
+            new CreateCheckInRequestDto { ManagerId = managerId, Items = rows });
+
+        if (resp?.Success != true)
+        { TempData["Error"] = resp?.Message ?? "Ошибка при создании заявки"; return RedirectToAction("CheckInUpload"); }
+
+        TempData["Success"] = $"Заявка на заселение отправлена воспитателю ({rows.Count} студентов)";
+        return RedirectToAction("CheckInUpload");
+    }
+
+    /// <summary>
+    /// Скачивает тестовый PDF: 108 студентов по всем 9 этажам (3 блока × 4 студента).
+    /// ВРЕМЕННАЯ КНОПКА — удалить в финальной версии.
+    /// </summary>
+    public IActionResult DownloadCheckInSamplePdf()
+    {
+        var rows   = GenerateSampleCheckInRows();
+        var stream = PdfExportService.ExportCheckInListPdf(rows);
+        return File(stream, "application/pdf", $"Тест_заселение_{DateTime.Today:yyyyMMdd}.pdf");
+    }
+
+    /// <summary>
+    /// Генерирует 108 строк: 9 этажей × 3 блока × 2 комнаты × 2 студента.
+    /// Имена, отчества и фамилии берутся из фиксированных массивов с шагом,
+    /// чтобы избежать повторов и получить реалистичный список.
+    /// </summary>
+    private static List<CheckInItemRowDto> GenerateSampleCheckInRows()
+    {
+        string[] mLastNames = {
+            "Абрамов","Александров","Андреев","Антонов","Белов","Борисов","Васильев","Волков",
+            "Громов","Данилов","Дмитриев","Егоров","Жуков","Зайцев","Иванов","Игнатов","Ильин",
+            "Карпов","Козлов","Крылов","Кузнецов","Лебедев","Лукьянов","Макаров","Михайлов",
+            "Морозов","Никитин","Новиков","Орлов","Павлов","Петров","Попов","Романов","Семёнов",
+            "Сидоров","Смирнов","Соколов","Соловьёв","Степанов","Тихонов","Ульянов","Фёдоров",
+            "Фролов","Харитонов","Чернов","Щербаков","Яковлев",
+        };
+        string[] fLastNames = {
+            "Абрамова","Александрова","Андреева","Белова","Борисова","Васильева","Волкова",
+            "Григорьева","Дмитриева","Егорова","Жукова","Зайцева","Иванова","Игнатова","Ильина",
+            "Карпова","Козлова","Кузнецова","Лебедева","Макарова","Михайлова","Морозова",
+            "Никитина","Новикова","Орлова","Павлова","Петрова","Попова","Романова","Семёнова",
+            "Сидорова","Смирнова","Соколова","Степанова","Тимофеева","Ульянова","Фёдорова",
+            "Харитонова","Цветкова","Чернова","Шестакова","Щербакова",
+        };
+        string[] mFirstNames = {
+            "Александр","Алексей","Андрей","Антон","Артём","Борис","Вадим","Виктор","Владимир",
+            "Владислав","Дмитрий","Евгений","Иван","Игорь","Илья","Кирилл","Константин","Максим",
+            "Михаил","Никита","Николай","Олег","Павел","Роман","Руслан","Сергей","Тимур","Юрий",
+        };
+        string[] fFirstNames = {
+            "Алина","Анастасия","Анна","Виктория","Дарья","Екатерина","Елена","Ирина","Карина",
+            "Ксения","Людмила","Маргарита","Мария","Надежда","Наталья","Оксана","Ольга","Полина",
+            "Светлана","Татьяна","Юлия","Яна",
+        };
+        string[] mPatronymics = {
+            "Александрович","Алексеевич","Андреевич","Антонович","Борисович","Васильевич",
+            "Викторович","Владимирович","Дмитриевич","Евгеньевич","Иванович","Игоревич",
+            "Ильич","Кириллович","Константинович","Максимович","Михайлович","Николаевич",
+            "Олегович","Павлович","Романович","Сергеевич","Тимурович","Юрьевич",
+        };
+        string[] fPatronymics = {
+            "Александровна","Алексеевна","Андреевна","Антоновна","Борисовна","Васильевна",
+            "Викторовна","Владимировна","Дмитриевна","Евгеньевна","Ивановна","Игоревна",
+            "Кирилловна","Константиновна","Максимовна","Михайловна","Николаевна","Олеговна",
+            "Павловна","Романовна","Сергеевна","Тимуровна","Юрьевна",
+        };
+
+        string[] faculties = {
+            "Машиностроительный факультет",
+            "Механико-технологический факультет",
+            "Факультет автоматизированных и информационных систем",
+            "Энергетический факультет",
+            "Гуманитарно-экономический факультет",
+        };
+        string[][] groups = {
+            new[] { "МТ-11","МТ-12","МТ-13","МТ-21","МТ-22","МТ-23" },
+            new[] { "ТМ-11","ТМ-12","ТМ-13","ТМ-21","ТМ-22","ТМ-23" },
+            new[] { "ПО-11","ПО-12","ПО-13","ПО-21","ПО-22","ПО-23" },
+            new[] { "ЭЭ-11","ЭЭ-12","ЭЭ-13","ЭЭ-21","ЭЭ-22","ЭЭ-23" },
+            new[] { "ГЭ-11","ГЭ-12","ГЭ-13","ГЭ-21","ГЭ-22","ГЭ-23" },
+        };
+
+        var rows   = new List<CheckInItemRowDto>();
+        int rowNum = 1;
+        // Индексы для мужских / женских имён — шаг взаимно простой с длиной массива → нет повторов
+        int mi = 0, fi = 0, mfi = 0, ffi = 0, mpi = 0, fpi = 0;
+
+        for (int floor = 1; floor <= 9; floor++)
+        {
+            for (int block = 1; block <= 3; block++)
+            {
+                for (int room = 1; room <= 2; room++)
+                {
+                    var blockRoom = $"{floor}{block}-{room}";
+                    for (int s = 0; s < 2; s++)
+                    {
+                        int fIdx  = (rowNum - 1) % 5;
+                        int gIdx  = ((rowNum - 1) / 5) % 6;
+                        bool male = rowNum % 2 == 1;
+
+                        string fullName = male
+                            ? $"{mLastNames[mi % mLastNames.Length]} {mFirstNames[mfi % mFirstNames.Length]} {mPatronymics[mpi % mPatronymics.Length]}"
+                            : $"{fLastNames[fi % fLastNames.Length]} {fFirstNames[ffi % fFirstNames.Length]} {fPatronymics[fpi % fPatronymics.Length]}";
+
+                        if (male) { mi += 3; mfi += 7; mpi += 11; }
+                        else      { fi += 3; ffi += 7; fpi += 11; }
+
+                        // Тестовый телефон
+                        var phoneNumber = $"+375 ({(29 + rowNum % 3 == 29 ? "29" : rowNum % 3 == 1 ? "33" : "44")}) {100 + rowNum * 7 % 900:D3}-{10 + rowNum * 13 % 90:D2}-{10 + rowNum * 17 % 90:D2}";
+
+                        rows.Add(new CheckInItemRowDto
+                        {
+                            RowNumber   = rowNum++,
+                            FullName    = fullName,
+                            PhoneNumber = phoneNumber,
+                            Faculty     = faculties[fIdx],
+                            Group       = groups[fIdx][gIdx],
+                            BlockNumber = blockRoom,
+                        });
+                    }
+                }
+            }
+        }
+
+        return rows; // 9 × 3 × 2 × 2 = 108 студентов
+    }
+
+    // ─── Выселение — подтверждение менеджером ────────────────────────────────
+
+    public async Task<IActionResult> Eviction()
+    {
+        ViewData["Title"] = "Выселение";
+        var resp = await _api.GetAsync<IEnumerable<EvictionRequestDto>>("api/eviction/pending");
+        var vm = new ManagerEvictionViewModel
+        {
+            PendingEvictions = resp?.Data?.ToList() ?? new(),
+        };
+        return View(vm);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ConfirmEviction(List<int> evictionIds)
+    {
+        if (evictionIds == null || !evictionIds.Any())
+        { TempData["Error"] = "Выберите хотя бы одного студента"; return RedirectToAction("Eviction"); }
+
+        var managerId = int.Parse(HttpContext.Session.GetString("UserId") ?? "0");
+        var resp = await _api.PostAsync<bool>("api/eviction/confirm",
+            new ConfirmEvictionDto { ManagerId = managerId, EvictionRequestIds = evictionIds });
+
+        TempData[resp?.Success == true ? "Success" : "Error"] =
+            resp?.Success == true ? resp.Message ?? "Выселение выполнено" : resp?.Message ?? "Ошибка";
+        return RedirectToAction("Eviction");
+    }
+
+    // ─── Вспомогательные методы ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Проверяет, что блок указан в формате «NN-1» или «NN-2».
+    /// Дефис и явный номер комнаты (1 или 2) обязательны.
+    /// </summary>
+    private static bool IsRoomNumberValid(string blockNumber)
+    {
+        var idx = blockNumber.IndexOf('-');
+        if (idx <= 0) return false; // дефис обязателен
+
+        var roomPart = blockNumber[(idx + 1)..].Trim();
+        return int.TryParse(roomPart, out var room) && (room == 1 || room == 2);
     }
 }

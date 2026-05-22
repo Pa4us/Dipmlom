@@ -1,9 +1,80 @@
 @model EducatorDashboardViewModel
-@{ ViewData["Title"] = "Дашборд"; }
+@{ ViewData["Title"] = "Статистика"; }
 
 @functions {
     static string ScoreClass(decimal s) => s >= 8 ? "score-high" : s >= 5 ? "score-medium" : "score-low";
     static string ScoreBg(decimal s)    => s >= 8 ? "#27ae60" : s >= 5 ? "#f39c12" : "#e74c3c";
+}
+
+<!-- Фильтры -->
+<div class="card stat-card mb-4">
+    <div class="card-body py-2">
+        <form method="get" asp-action="Dashboard" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label form-label-sm mb-1">Период с</label>
+                <input type="date" name="dateFrom" class="form-control form-control-sm"
+                       value="@Model.DateFrom" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label form-label-sm mb-1">по</label>
+                <input type="date" name="dateTo" class="form-control form-control-sm"
+                       value="@Model.DateTo" />
+            </div>
+            <div class="col-auto">
+                <label class="form-label form-label-sm mb-1">Этаж</label>
+                <select name="floor" class="form-select form-select-sm" style="min-width:90px">
+                    <option value="">Все</option>
+                    @foreach (var f in Model.Floors)
+                    {
+                        if (Model.SelectedFloor == f)
+                        { <option value="@f" selected>@f этаж</option> }
+                        else
+                        { <option value="@f">@f этаж</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label form-label-sm mb-1">Блок</label>
+                <select name="blockId" class="form-select form-select-sm" style="min-width:130px">
+                    <option value="">Все блоки</option>
+                    @foreach (var b in Model.Blocks.OrderBy(x => x.Floor).ThenBy(x => x.BlockNumber))
+                    {
+                        if (Model.SelectedBlockId == b.Id)
+                        { <option value="@b.Id" selected>@b.BlockNumber (эт. @b.Floor)</option> }
+                        else
+                        { <option value="@b.Id">@b.BlockNumber (эт. @b.Floor)</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-auto d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel me-1"></i>Применить
+                </button>
+                @if (Model.IsFiltered)
+                {
+                    <a asp-action="Dashboard" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle me-1"></i>Сбросить
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.IsFiltered)
+{
+    <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3" role="alert">
+        <i class="bi bi-funnel-fill"></i>
+        <span>
+            Отображается статистика по фильтру:
+            @if (!string.IsNullOrEmpty(Model.DateFrom) || !string.IsNullOrEmpty(Model.DateTo))
+            { <strong>период @(Model.DateFrom ?? "…") — @(Model.DateTo ?? "…")</strong><text>; </text> }
+            @if (Model.SelectedFloor.HasValue)
+            { <strong>@Model.SelectedFloor этаж</strong><text>; </text> }
+            @if (Model.SelectedBlockId.HasValue)
+            { <strong>блок @(Model.Blocks.FirstOrDefault(b => b.Id == Model.SelectedBlockId)?.BlockNumber ?? "")</strong> }
+        </span>
+    </div>
 }
 
 <!-- Статистические карточки -->
@@ -100,8 +171,15 @@
 <!-- Последние проверки -->
 <div class="table-card">
     <div class="p-3 border-bottom fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-clipboard-check me-2 text-primary"></i>Последние проверки</span>
-        <a asp-controller="Educator" asp-action="Inspections" class="btn btn-sm btn-outline-primary">
+        <span>
+            <i class="bi bi-clipboard-check me-2 text-primary"></i>
+            @(Model.IsFiltered ? "Проверки по фильтру" : "Последние проверки")
+            <span class="badge bg-secondary ms-1">@Model.RecentInspections.Count</span>
+        </span>
+        <a asp-controller="Educator" asp-action="Inspections"
+           asp-route-dateFrom="@Model.DateFrom" asp-route-dateTo="@Model.DateTo"
+           asp-route-blockId="@Model.SelectedBlockId" asp-route-floor="@Model.SelectedFloor"
+           class="btn btn-sm btn-outline-primary">
             Все проверки <i class="bi bi-arrow-right ms-1"></i>
         </a>
     </div>

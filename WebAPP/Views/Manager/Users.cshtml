@@ -1,21 +1,48 @@
 @model ManagerUsersViewModel
 @{ ViewData["Title"] = "Управление аккаунтами"; }
 
+@functions {
+    static string RoleRu(string? r) => r switch {
+        "Student"   => "Студент",
+        "Inspector" => "Проверяющий",
+        "Educator"  => "Воспитатель",
+        "Manager"   => "Заведующая",
+        "Mechanic"  => "Мастер",
+        _           => r ?? "—"
+    };
+}
+
 <div class="row g-4">
 
     <!-- Список пользователей -->
     <div class="col-xl-8">
 
+        <!-- Фильтр по ролям -->
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <a asp-action="Users" asp-route-search="@Model.Search"
+               class="btn btn-sm @(Model.SelectedRole == null ? "btn-primary" : "btn-outline-secondary")">
+                Все
+            </a>
+            @foreach (var r in Model.Roles)
+            {
+                <a asp-action="Users" asp-route-role="@r.Name" asp-route-search="@Model.Search"
+                   class="btn btn-sm @(Model.SelectedRole == r.Name ? "btn-primary" : "btn-outline-secondary")">
+                    @r.Name
+                </a>
+            }
+        </div>
+
         <!-- Поиск -->
         <form method="get" asp-action="Users" class="d-flex gap-2 mb-3">
+            <input type="hidden" name="role" value="@Model.SelectedRole" />
             <input type="text" name="search" value="@Model.Search"
                    class="form-control" placeholder="Поиск по ФИО, логину или email..." />
             <button type="submit" class="btn btn-outline-primary text-nowrap">
                 <i class="bi bi-search me-1"></i>Найти
             </button>
-            @if (!string.IsNullOrWhiteSpace(Model.Search))
+            @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.SelectedRole))
             {
-                <a asp-action="Users" class="btn btn-outline-secondary text-nowrap">
+                <a asp-action="Users" class="btn btn-outline-secondary text-nowrap" title="Сбросить фильтры">
                     <i class="bi bi-x"></i>
                 </a>
             }
@@ -51,7 +78,7 @@
                                 }
                             </div>
                             <div class="mt-1">
-                                <span class="badge bg-light text-dark border me-1">@u.RoleName</span>
+                                <span class="badge bg-light text-dark border me-1">@RoleRu(u.RoleName)</span>
                                 @if (u.IsActive)
                                 {
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">Активен</span>

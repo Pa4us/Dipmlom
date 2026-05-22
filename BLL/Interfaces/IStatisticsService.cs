@@ -15,8 +15,6 @@ namespace BLL.Interfaces
         Task<ApiResponse<BlockWeeklyScoreDto>> GetBlockWeeklyScoreAsync(int blockId, int weekNumber, int year);
         Task<ApiResponse<IEnumerable<BlockWeeklyScoreDto>>> GetBlockWeeklyScoresHistoryAsync(int blockId, int? weekFrom = null, int? weekTo = null);
         Task<ApiResponse<DormitoryStatisticsDto>> GetStatisticsForPeriodAsync(DateOnly startDate, DateOnly endDate);
-        Task<ApiResponse<byte[]>> ExportStatisticsToExcelAsync(int? floor = null, int? weekNumber = null, int? year = null);
-
         /// <summary>
         /// Пересчитывает BlockWeeklyScore, FloorWeeklyStat, DormitoryWeeklyStat
         /// для недели, в которую попадает <paramref name="date"/>.

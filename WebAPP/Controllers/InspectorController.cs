@@ -46,24 +46,32 @@ public class InspectorController : Controller
             latestInspection = inspResp?.Data?.OrderByDescending(i => i.InspectionDate).FirstOrDefault();
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var myInsp = allInspTask.Result?.Data?
+        var today    = DateOnly.FromDateTime(DateTime.Today);
+        var allInsp  = allInspTask.Result?.Data?.ToList() ?? new();
+
+        var myInsp = allInsp
             .Where(i => i.InspectorId == userId)
             .OrderByDescending(i => i.InspectionDate)
-            .ToList() ?? new();
+            .ToList();
 
-        var alreadyInspectedToday = myInsp.Any(i => i.InspectionDate == today);
+        // Блоки, уже проверенные сегодня (любым инспектором)
+        var todayInspections   = allInsp.Where(i => i.InspectionDate == today).ToList();
+        var inspectedBlockIds  = todayInspections.Select(i => i.BlockId).ToHashSet();
+        var availableBlocks    = blocks.Where(b => !inspectedBlockIds.Contains(b.Id))
+                                       .OrderBy(b => b.Floor).ThenBy(b => b.BlockNumber)
+                                       .ToList();
 
         var vm = new InspectorDashboardViewModel
         {
-            Residence              = residenceTask.Result?.Data,
-            LatestBlockInspection  = latestInspection,
-            Rating                 = ratingTask.Result?.Data,
-            MyRecentRequests       = requestsTask.Result?.Data?.OrderByDescending(r => r.CreatedAt).Take(5).ToList() ?? new(),
-            MyInspections          = myInsp,
-            Blocks                 = blocks,
-            IsInspectionDay        = _schedule.IsInspectionAllowedToday(),
-            AlreadyInspectedToday  = alreadyInspectedToday,
+            Residence             = residenceTask.Result?.Data,
+            LatestBlockInspection = latestInspection,
+            Rating                = ratingTask.Result?.Data,
+            MyRecentRequests      = requestsTask.Result?.Data?.OrderByDescending(r => r.CreatedAt).Take(5).ToList() ?? new(),
+            MyInspections         = myInsp,
+            Blocks                = blocks,
+            AvailableBlocks       = availableBlocks,
+            TodayInspections      = todayInspections.OrderBy(i => i.BlockNumber).ToList(),
+            IsInspectionDay       = _schedule.IsInspectionAllowedToday(),
         };
         return View(vm);
     }

@@ -82,16 +82,5 @@ namespace WebAPI.Controllers
             return Ok(new { success = true, message = $"Пересчитано {count} групп проверок" });
         }
 
-        /// <summary>Экспорт статистики в Excel</summary>
-        [HttpGet("export")]
-        [Authorize(Roles = "Educator")]
-        public async Task<IActionResult> Export([FromQuery] int? floor = null, [FromQuery] int? week = null, [FromQuery] int? year = null)
-        {
-            var response = await _statisticsService.ExportStatisticsToExcelAsync(floor, week, year);
-            if (!response.Success || response.Data == null)
-                return BadRequest(response);
-
-            return File(response.Data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "statistics.xlsx");
-        }
     }
 }

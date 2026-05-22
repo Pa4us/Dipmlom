@@ -5,35 +5,32 @@
     <div class="col-lg-6">
         <div class="form-card">
             <h6 class="fw-bold mb-1">
-                <i class="bi bi-calendar-week-fill text-primary me-2"></i>Дни проведения проверок
+                <i class="bi bi-calendar-week-fill text-primary me-2"></i>День проведения проверок
             </h6>
             <p class="text-muted small mb-4">
-                Выберите дни недели, когда инспекторам разрешено проводить проверки блоков.
-                В остальные дни форма проверки будет недоступна.
+                Выберите один день недели. Система автоматически определит все даты этого дня в текущем месяце —
+                именно в эти дни инспекторам будет разрешено проводить проверки блоков.
             </p>
 
             <form method="post">
-                <div class="row g-3 mb-4">
-                    @{
-                        var dayNames = new[] { "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье" };
-                        var dayIcons = new[] { "bi-1-circle", "bi-2-circle", "bi-3-circle", "bi-4-circle", "bi-5-circle", "bi-6-circle", "bi-7-circle" };
-                    }
+                <div class="d-flex flex-column gap-2 mb-4">
                     @for (int d = 0; d < 7; d++)
                     {
-                        var isEnabled = Model.EnabledDays.Contains(d);
-                        var isWeekend = d >= 5;
-                        <div class="col-6">
-                            <div class="form-check form-check-card @(isEnabled ? "checked" : "") @(isWeekend ? "weekend" : "")"
-                                 onclick="this.querySelector('input').click(); this.classList.toggle('checked')">
-                                <input class="form-check-input" type="checkbox"
-                                       name="enabledDays" value="@d" id="day@d"
-                                       @(isEnabled ? "checked" : "") />
-                                <label class="form-check-label d-flex align-items-center gap-2 w-100" for="day@d">
-                                    <i class="bi @dayIcons[d] @(isWeekend ? "text-danger" : "text-primary")"></i>
-                                    <span class="fw-semibold">@dayNames[d]</span>
-                                    @if (isWeekend) { <span class="badge bg-danger ms-auto">вых.</span> }
-                                </label>
-                            </div>
+                        var isSelected = Model.SelectedDay == d;
+                        var isWeekend  = d >= 5;
+                        var btnClass   = isSelected ? "btn-primary" : (isWeekend ? "btn-outline-danger" : "btn-outline-secondary");
+                        <div>
+                            <input type="radio" class="btn-check" name="selectedDay"
+                                   id="day@(d)" value="@d" autocomplete="off"
+                                   @(isSelected ? "checked" : "") />
+                            <label class="btn @btnClass w-100 text-start py-2 px-3" for="day@(d)">
+                                <i class="bi bi-@(d+1)-circle me-2 @(isWeekend ? "" : "")"></i>
+                                @WebAPP.Services.InspectionScheduleService.DayNames[d]
+                                @if (isWeekend)
+                                {
+                                    <span class="badge bg-danger ms-2">вых.</span>
+                                }
+                            </label>
                         </div>
                     }
                 </div>
@@ -44,20 +41,41 @@
             </form>
         </div>
 
-        <!-- Текущий статус -->
+        <!-- Даты текущего месяца -->
         <div class="card stat-card mt-3">
             <div class="card-body">
                 <div class="fw-semibold mb-2">
-                    <i class="bi bi-info-circle me-1 text-info"></i>Текущий статус
+                    <i class="bi bi-calendar3 me-1 text-primary"></i>
+                    Даты проверок в @DateTime.Today.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"))
                 </div>
-                @{
-                    var today = (int)DateTime.Today.DayOfWeek;
-                    var normalizedToday = today == 0 ? 6 : today - 1;
-                    var isAllowed = Model.EnabledDays.Contains(normalizedToday);
-                    var todayName = new[] { "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье" }[normalizedToday];
+                @if (Model.MonthDates.Any())
+                {
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @foreach (var date in Model.MonthDates)
+                        {
+                            var isPast   = date < DateOnly.FromDateTime(DateTime.Today);
+                            var isToday  = date == DateOnly.FromDateTime(DateTime.Today);
+                            var badgeCss = isToday ? "bg-success" : isPast ? "bg-secondary" : "bg-primary";
+                            <span class="badge @badgeCss" style="font-size:.9rem;padding:6px 12px">
+                                @if (isToday) { <i class="bi bi-check-circle me-1"></i> }
+                                @date.ToString("dd.MM.yyyy")
+                                @if (isToday) { <span class="ms-1">(сегодня)</span> }
+                            </span>
+                        }
+                    </div>
                 }
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted">Сегодня (@todayName):</span>
+                else
+                {
+                    <div class="small text-muted mt-1">Нет дат в текущем месяце</div>
+                }
+
+                <div class="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
+                    <span class="text-muted small">Сегодня (@WebAPP.Services.InspectionScheduleService.DayNames[(int)DateTime.Today.DayOfWeek == 0 ? 6 : (int)DateTime.Today.DayOfWeek - 1]):</span>
+                    @{
+                        var dow = (int)DateTime.Today.DayOfWeek;
+                        var normalizedToday = dow == 0 ? 6 : dow - 1;
+                        var isAllowed = normalizedToday == Model.SelectedDay;
+                    }
                     @if (isAllowed)
                     {
                         <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Проверки разрешены</span>
@@ -67,34 +85,8 @@
                         <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Проверки не проводятся</span>
                     }
                 </div>
-                @if (Model.EnabledDays.Any())
-                {
-                    var enabledNames = Model.EnabledDays.OrderBy(d => d)
-                        .Select(d => new[] { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс" }[d]);
-                    <div class="small text-muted mt-1">
-                        Разрешённые дни: <strong>@string.Join(", ", enabledNames)</strong>
-                    </div>
-                }
-                else
-                {
-                    <div class="small text-danger mt-1">Проверки не разрешены ни в один день</div>
-                }
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .form-check-card {
-        border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 12px 14px;
-        cursor: pointer;
-        transition: all .2s;
-        user-select: none;
-    }
-    .form-check-card:hover { border-color: #6366f1; background: #f8f7ff; }
-    .form-check-card.checked { border-color: #6366f1; background: #eef2ff; }
-    .form-check-card.weekend .form-check-label { color: #dc2626; }
-    .form-check-card input { pointer-events: none; }
-</style>

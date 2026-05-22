@@ -16,7 +16,12 @@ public partial class AppDbContext : DbContext
     {
     }
 
-    public virtual DbSet<Block> Blocks { get; set; }
+    public virtual DbSet<Block>              Blocks              { get; set; }
+    public virtual DbSet<Faculty>            Faculties           { get; set; }
+    public virtual DbSet<Group>              Groups              { get; set; }
+    public virtual DbSet<CheckInRequest>     CheckInRequests     { get; set; }
+    public virtual DbSet<CheckInRequestItem> CheckInRequestItems { get; set; }
+    public virtual DbSet<EvictionRequest>    EvictionRequests    { get; set; }
 
     public virtual DbSet<BlockWeeklyScore> BlockWeeklyScores { get; set; }
 
@@ -340,11 +345,12 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07C26F86B3");
 
-            entity.HasIndex(e => e.RoleId, "IX_Users_RoleId");
+            entity.HasIndex(e => e.RoleId,    "IX_Users_RoleId");
+            entity.HasIndex(e => e.FacultyId, "IX_Users_FacultyId");
+            entity.HasIndex(e => e.GroupId,   "IX_Users_GroupId");
 
             entity.HasIndex(e => e.Username, "UQ__Users__536C85E46ED61669").IsUnique();
-
-            entity.HasIndex(e => e.Email, "UQ__Users__A9D10534D8FB1843").IsUnique();
+            entity.HasIndex(e => e.Email,    "UQ__Users__A9D10534D8FB1843").IsUnique();
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -360,6 +366,84 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Users__RoleId__3E52440B");
+
+            entity.HasOne(d => d.Faculty).WithMany(p => p.Users)
+                .HasForeignKey(d => d.FacultyId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Group).WithMany(p => p.Users)
+                .HasForeignKey(d => d.GroupId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Faculty>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name, "UQ_Faculties_Name").IsUnique();
+            entity.Property(e => e.Name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<Group>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(50);
+
+            entity.HasOne(d => d.Faculty).WithMany(p => p.Groups)
+                .HasForeignKey(d => d.FacultyId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CheckInRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+
+            entity.HasOne(d => d.Manager).WithMany()
+                .HasForeignKey(d => d.ManagerId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+        });
+
+        modelBuilder.Entity<CheckInRequestItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FullName).HasMaxLength(100);
+            entity.Property(e => e.Faculty).HasMaxLength(200);
+            entity.Property(e => e.Group).HasMaxLength(50);
+            entity.Property(e => e.BlockNumber).HasMaxLength(20);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+            entity.Property(e => e.GeneratedPassword).HasMaxLength(50);
+
+            entity.HasOne(d => d.Request).WithMany(p => p.Items)
+                .HasForeignKey(d => d.CheckInRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.User).WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<EvictionRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.RequestedAt).HasColumnType("datetime");
+            entity.Property(e => e.ConfirmedAt).HasColumnType("datetime");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("Pending");
+
+            entity.HasOne(d => d.Student).WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_EvictionRequests_Student");
+
+            entity.HasOne(d => d.Educator).WithMany()
+                .HasForeignKey(d => d.EducatorId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_EvictionRequests_Educator");
+
+            entity.HasOne(d => d.Manager).WithMany()
+                .HasForeignKey(d => d.ManagerId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_EvictionRequests_Manager");
         });
 
         OnModelCreatingPartial(modelBuilder);

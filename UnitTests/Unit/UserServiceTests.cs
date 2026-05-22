@@ -25,12 +25,16 @@ public class UserServiceTests
                     Mock<IJwtService> jwtSvc)
         Build()
     {
-        var userRepo = new Mock<IRepository<User>>();
-        var resRepo  = new Mock<IRepository<Residence>>();
-        var roleRepo = new Mock<IRepository<Role>>();
-        var jwtSvc   = new Mock<IJwtService>();
+        var userRepo          = new Mock<IRepository<User>>();
+        var resRepo           = new Mock<IRepository<Residence>>();
+        var roleRepo          = new Mock<IRepository<Role>>();
+        var studentPointRepo  = new Mock<IRepository<StudentPoint>>();
+        var inspectionRepo    = new Mock<IRepository<Inspection>>();
+        var repairReqRepo     = new Mock<IRepository<RepairRequest>>();
+        var repairComRepo     = new Mock<IRepository<RepairComment>>();
+        var eventPartRepo     = new Mock<IRepository<EventParticipant>>();
+        var jwtSvc            = new Mock<IJwtService>();
 
-        // AutoMapper 16 требует ILoggerFactory в DI
         var mapper = new ServiceCollection()
                          .AddLogging()
                          .AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>())
@@ -38,7 +42,16 @@ public class UserServiceTests
                          .GetRequiredService<IMapper>();
 
         var service = new UserService(
-            userRepo.Object, resRepo.Object, roleRepo.Object, mapper, jwtSvc.Object);
+            userRepo.Object,
+            resRepo.Object,
+            roleRepo.Object,
+            studentPointRepo.Object,
+            inspectionRepo.Object,
+            repairReqRepo.Object,
+            repairComRepo.Object,
+            eventPartRepo.Object,
+            mapper,
+            jwtSvc.Object);
 
         return (service, userRepo, resRepo, roleRepo, jwtSvc);
     }
