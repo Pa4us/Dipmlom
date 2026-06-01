@@ -3,10 +3,7 @@
   <RunConfiguration>
     <!-- Нагрузочные тесты длятся ~1.5 мин каждый, увеличиваем таймаут -->
     <TestSessionTimeout>600000</TestSessionTimeout>
-  </RunConfiguration>
-
-  <!-- Переменные окружения, видимые тест-хосту -->
-  <RunConfiguration>
+    <!-- Переменные окружения, видимые тест-хосту -->
     <EnvironmentVariables>
       <RUN_LOAD_TESTS>1</RUN_LOAD_TESTS>
       <!-- При необходимости подменить адрес API:
