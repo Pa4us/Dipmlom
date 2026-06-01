@@ -17,5 +17,15 @@ namespace DAL
 
             return services;
         }
+
+        /// <summary>
+        /// Только репозитории, без AppDbContext. Используется в тестовом окружении,
+        /// где DbContext поднимается тест-фабрикой поверх InMemory-провайдера.
+        /// </summary>
+        public static IServiceCollection AddDataAccessRepositoriesOnly(this IServiceCollection services)
+        {
+            services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+            return services;
+        }
     }
 }

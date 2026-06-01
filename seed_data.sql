@@ -10,6 +10,35 @@ SET NOCOUNT ON;
 BEGIN TRANSACTION;
 
 -- ──────────────────────────────────────────────────────────────
+-- 0a. Тестовые пользователи для нагрузочного тестирования (NBomber)
+--     Логины: student_test, inspector_test, educator_test,
+--             manager_test, mechanic_test
+--     Пароль (общий): test1234
+--     Хэш: SHA-256("test1234") в Base64 — соответствует UserService.HashPassword
+-- ──────────────────────────────────────────────────────────────
+DECLARE @lt_hash NVARCHAR(255) = 'k36NX7tIvUlJU2zWW401xCa4DS+DDFwwjizexCKuIkQ=';
+
+INSERT INTO Users (Username, PasswordHash, Email, FullName, RoleId, IsActive, CreatedAt)
+SELECT 'student_test',   @lt_hash, 'student@test.local',   N'Тестовый Студент',     r.Id, 1, GETDATE()
+FROM   Roles r WHERE r.Name = 'Student'   AND NOT EXISTS (SELECT 1 FROM Users WHERE Username = 'student_test');
+
+INSERT INTO Users (Username, PasswordHash, Email, FullName, RoleId, IsActive, CreatedAt)
+SELECT 'inspector_test', @lt_hash, 'inspector@test.local', N'Тестовый Проверяющий', r.Id, 1, GETDATE()
+FROM   Roles r WHERE r.Name = 'Inspector' AND NOT EXISTS (SELECT 1 FROM Users WHERE Username = 'inspector_test');
+
+INSERT INTO Users (Username, PasswordHash, Email, FullName, RoleId, IsActive, CreatedAt)
+SELECT 'educator_test',  @lt_hash, 'educator@test.local',  N'Тестовый Воспитатель', r.Id, 1, GETDATE()
+FROM   Roles r WHERE r.Name = 'Educator'  AND NOT EXISTS (SELECT 1 FROM Users WHERE Username = 'educator_test');
+
+INSERT INTO Users (Username, PasswordHash, Email, FullName, RoleId, IsActive, CreatedAt)
+SELECT 'manager_test',   @lt_hash, 'manager@test.local',   N'Тестовая Заведующая',  r.Id, 1, GETDATE()
+FROM   Roles r WHERE r.Name = 'Manager'   AND NOT EXISTS (SELECT 1 FROM Users WHERE Username = 'manager_test');
+
+INSERT INTO Users (Username, PasswordHash, Email, FullName, RoleId, IsActive, CreatedAt)
+SELECT 'mechanic_test',  @lt_hash, 'mechanic@test.local',  N'Тестовый Мастер',      r.Id, 1, GETDATE()
+FROM   Roles r WHERE r.Name = 'Mechanic'  AND NOT EXISTS (SELECT 1 FROM Users WHERE Username = 'mechanic_test');
+
+-- ──────────────────────────────────────────────────────────────
 -- 0. Зоны проверки (если ещё не созданы)
 -- ──────────────────────────────────────────────────────────────
 IF NOT EXISTS (SELECT 1 FROM InspectionZones)

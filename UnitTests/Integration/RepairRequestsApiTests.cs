@@ -2,8 +2,10 @@ using DAL.DBContext;
 using DAL.Entities;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -63,7 +65,7 @@ public class RepairRequestsApiTests : IClassFixture<TestWebAppFactory>
     }
 
     [Fact]
-    public async Task Login_WrongPassword_Returns200WithSuccessFalse()
+    public async Task Login_WrongPassword_Returns400WithSuccessFalse()
     {
         var client = _factory.CreateClient();
 
@@ -73,10 +75,13 @@ public class RepairRequestsApiTests : IClassFixture<TestWebAppFactory>
             password = "wrongpassword"
         });
 
-        response.EnsureSuccessStatusCode(); // API возвращает 200 даже при ошибке
+        // API возвращает 400 BadRequest при неверных учётных данных
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
 
+        // В теле ответа сохраняется унифицированный ApiResponse<T> c success=false
         Assert.False(doc.RootElement.GetProperty("success").GetBoolean());
     }
 
@@ -186,24 +191,23 @@ public class RepairRequestsApiTests : IClassFixture<TestWebAppFactory>
 /// </summary>
 public class TestWebAppFactory : WebApplicationFactory<WebAPI.Program>
 {
+    // Имя БД одно на всю фабрику — иначе при каждом CreateClient() поднимается
+    // новая InMemory-база и данные исчезают.
+    private static readonly string DbName = "TestDb_" + Guid.NewGuid();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
 
-        builder.ConfigureServices(services =>
+        // Program.cs в окружении Testing НЕ регистрирует SQL Server-провайдера,
+        // поэтому здесь достаточно просто добавить InMemory DbContext.
+        builder.ConfigureTestServices(services =>
         {
-            // Удаляем регистрацию реального AppDbContext (SQL Server)
-            var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
-            if (descriptor != null)
-                services.Remove(descriptor);
-
-            // Регистрируем InMemory БД
             services.AddDbContext<AppDbContext>(opts =>
-                opts.UseInMemoryDatabase("TestDb_" + Guid.NewGuid()));
+                opts.UseInMemoryDatabase(DbName));
 
-            // Заполняем тестовыми данными
-            var sp = services.BuildServiceProvider();
+            // Засеять тестовыми данными один раз
+            using var sp = services.BuildServiceProvider();
             using var scope = sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Database.EnsureCreated();

@@ -52,8 +52,8 @@ public class RepairRequestServiceTests
         reqRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(request);
         reqRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-        // Act
-        var result = await service.UpdateStatusAsync(1, "InProgress");
+        // Act — userId 5 (любой существующий — нужен для авто-назначения мастера)
+        var result = await service.UpdateStatusAsync(1, "InProgress", userId: 5);
 
         // Assert
         Assert.True(result.Success);
@@ -82,7 +82,7 @@ public class RepairRequestServiceTests
         var before = DateTime.Now;
 
         // Act
-        var result = await service.UpdateStatusAsync(2, "Completed");
+        var result = await service.UpdateStatusAsync(2, "Completed", userId: 5);
 
         // Assert
         Assert.True(result.Success);
@@ -100,7 +100,7 @@ public class RepairRequestServiceTests
         reqRepo.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((RepairRequest?)null);
 
         // Act
-        var result = await service.UpdateStatusAsync(999, "Completed");
+        var result = await service.UpdateStatusAsync(999, "Completed", userId: 5);
 
         // Assert
         Assert.False(result.Success);
@@ -129,7 +129,7 @@ public class RepairRequestServiceTests
         commentRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
         // Act
-        var result = await service.UpdateStatusAsync(3, "Completed", "Ремонт выполнен");
+        var result = await service.UpdateStatusAsync(3, "Completed", userId: 5, comment: "Ремонт выполнен");
 
         // Assert
         Assert.True(result.Success);
@@ -184,7 +184,7 @@ public class RepairRequestServiceTests
 
         // Assert
         Assert.False(result.Success);
-        Assert.Contains("Слесарь не найден", result.Message);
+        Assert.Contains("Мастер не найден", result.Message);
         reqRepo.Verify(r => r.Update(It.IsAny<RepairRequest>()), Times.Never);
     }
 

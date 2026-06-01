@@ -18,8 +18,19 @@ namespace WebAPI
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // ── DAL: DbContext + Repositories 
-            builder.Services.AddDataAccess(builder.Configuration);
+            // ── DAL: DbContext + Repositories
+            // В тестовом окружении подмена DbContext делается в TestWebAppFactory,
+            // здесь SQL Server не регистрируем, иначе EF Core увидит два провайдера.
+            if (!builder.Environment.IsEnvironment("Testing"))
+            {
+                builder.Services.AddDataAccess(builder.Configuration);
+            }
+            else
+            {
+                // Только репозитории и AutoMapper — без DbContext.
+                // DbContext тест-фабрика регистрирует поверх отдельно (InMemory).
+                builder.Services.AddDataAccessRepositoriesOnly();
+            }
 
             // ── BLL: Сервисы + AutoMapper 
             builder.Services.AddBusinessLogic();

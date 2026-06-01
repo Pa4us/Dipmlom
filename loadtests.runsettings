@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <!-- Нагрузочные тесты длятся ~1.5 мин каждый, увеличиваем таймаут -->
+    <TestSessionTimeout>600000</TestSessionTimeout>
+  </RunConfiguration>
+
+  <!-- Переменные окружения, видимые тест-хосту -->
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <RUN_LOAD_TESTS>1</RUN_LOAD_TESTS>
+      <!-- При необходимости подменить адрес API:
+      <LOADTEST_BASE_URL>http://localhost:5229</LOADTEST_BASE_URL>
+      -->
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

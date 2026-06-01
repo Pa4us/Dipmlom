@@ -19,6 +19,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
     <!-- WebApplicationFactory для интеграционных тестов HTTP -->
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
+    <!-- NBomber для нагрузочного тестирования -->
+    <PackageReference Include="NBomber" Version="6.0.0" />
+    <PackageReference Include="NBomber.Http" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
