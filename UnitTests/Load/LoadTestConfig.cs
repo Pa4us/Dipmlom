@@ -20,4 +20,15 @@ internal static class LoadTestConfig
 
     public static readonly TestUser[] AllUsers =
         { Student, Inspector, Educator, Manager, Mechanic };
+
+    /// <summary>
+    /// Папка, куда NBomber должен сохранять отчёты. Возвращает абсолютный путь,
+    /// чтобы он не зависел от текущей рабочей директории процесса.
+    /// </summary>
+    public static string GetReportsFolder([System.Runtime.CompilerServices.CallerMemberName] string testName = "")
+    {
+        var baseDir = AppContext.BaseDirectory; // …\UnitTests\bin\Release\net9.0\
+        var stamp   = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        return System.IO.Path.Combine(baseDir, "reports", $"{stamp}_{testName}");
+    }
 }

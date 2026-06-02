@@ -50,6 +50,7 @@ public class RepairRequestsLoadTests
             .RegisterScenarios(scenario)
             .WithTestSuite("loadtests")
             .WithTestName("repair_requests_list")
+            .WithReportFolder(LoadTestConfig.GetReportsFolder("repair_requests_list"))
             .Run();
 
         var sc = stats.ScenarioStats[0];

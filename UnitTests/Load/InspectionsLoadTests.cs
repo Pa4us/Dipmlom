@@ -49,6 +49,7 @@ public class InspectionsLoadTests
             .RegisterScenarios(scenario)
             .WithTestSuite("loadtests")
             .WithTestName("inspections_list")
+            .WithReportFolder(LoadTestConfig.GetReportsFolder("inspections_list"))
             .Run();
 
         var sc = stats.ScenarioStats[0];

@@ -62,6 +62,7 @@ public class AuthLoginLoadTests
             .RegisterScenarios(scenario)
             .WithTestSuite("loadtests")
             .WithTestName("auth_login")
+            .WithReportFolder(LoadTestConfig.GetReportsFolder("auth_login"))
             .Run();
 
         // Пороги для прохождения теста
